@@ -1,0 +1,124 @@
+.game-card {
+  background: var(--secondary);
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+  position: relative;
+}
+
+.game-card:hover {
+  transform: translateY(-10px);
+  border-color: var(--primary);
+  box-shadow: 0 20px 40px rgba(255, 215, 0, 0.3);
+}
+
+.game-card-header {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.game-card-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.9;
+}
+
+.game-card.gradient-1 .game-card-header::before {
+  background: var(--gradient-1);
+}
+
+.game-card.gradient-2 .game-card-header::before {
+  background: var(--gradient-2);
+}
+
+.game-card.gradient-3 .game-card-header::before {
+  background: var(--gradient-3);
+}
+
+.game-card.gradient-gold .game-card-header::before {
+  background: var(--gradient-gold);
+}
+
+.game-card-icon {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  font-size: 1.5rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.game-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: relative;
+  z-index: 1;
+}
+
+.game-card-body {
+  padding: 1.5rem;
+}
+
+.game-card-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: var(--primary);
+}
+
+.game-card-description {
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.game-card-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.game-card-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: var(--accent);
+  color: white;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  z-index: 2;
+}
+
+.game-card.unavailable {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.game-card.unavailable:hover {
+  transform: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+@media (max-width: 768px) {
+  .game-card-header {
+    height: 150px;
+    font-size: 3rem;
+  }
+
+  .game-card-title {
+    font-size: 1.2rem;
+  }
+}
