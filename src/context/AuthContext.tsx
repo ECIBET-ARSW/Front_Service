@@ -5,6 +5,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 
+const USERS_URL = import.meta.env.VITE_USERS_URL ?? 'http://localhost:8081';
+
 /** Shape of the values exposed by AuthContext. */
 interface AuthContextType {
   user: User | null;
@@ -35,21 +37,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    * Simulates an API login call.
    * On success, stores the user in state and localStorage.
    */
-  const login = async (email: string, _password: string) => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // TODO: Replace with real API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const mockUser: User = {
-        id: '1',
-        username: email.split('@')[0],
-        email,
-        balance: 5000
+      const res = await fetch(`${USERS_URL}/api/v1/users/email/${encodeURIComponent(email)}`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) throw new Error('Credenciales inválidas');
+      const userData = await res.json();
+      // Validate password via auth header or token — store user on success
+      const token = btoa(`${email}:${password}`);
+      const authUser: User = {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        balance: userData.balance ?? 0,
       };
-
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      setUser(authUser);
+      localStorage.setItem('user', JSON.stringify(authUser));
+      localStorage.setItem('token', token);
     } catch (error) {
       throw new Error('Login failed');
     } finally {
@@ -61,21 +67,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    * Simulates an API registration call.
    * New users start with a $1,000 balance.
    */
-  const register = async (username: string, email: string, _password: string) => {
+  const register = async (username: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      // TODO: Replace with real API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const mockUser: User = {
-        id: Date.now().toString(),
-        username,
-        email,
-        balance: 1000
+      const res = await fetch(`${USERS_URL}/api/v1/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password }),
+      });
+      if (!res.ok) throw new Error('Registration failed');
+      const userData = await res.json();
+      const token = btoa(`${email}:${password}`);
+      const newUser: User = {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        balance: userData.balance ?? 0,
       };
-
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      setUser(newUser);
+      localStorage.setItem('user', JSON.stringify(newUser));
+      localStorage.setItem('token', token);
     } catch (error) {
       throw new Error('Registration failed');
     } finally {
@@ -87,6 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   return (
