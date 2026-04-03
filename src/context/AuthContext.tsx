@@ -40,22 +40,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${USERS_URL}/api/v1/users/email/${encodeURIComponent(email)}`, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) throw new Error('Credenciales inválidas');
-      const userData = await res.json();
-      // Validate password via auth header or token — store user on success
-      const token = btoa(`${email}:${password}`);
-      const authUser: User = {
-        id: userData.id,
-        username: userData.username,
-        email: userData.email,
-        balance: userData.balance ?? 0,
+      // TODO: reemplazar con llamada real cuando Auth-Service esté listo
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const mockUser: User = {
+        id: btoa(email).slice(0, 12),
+        username: email.split('@')[0],
+        email,
+        balance: 100000
       };
-      setUser(authUser);
-      localStorage.setItem('user', JSON.stringify(authUser));
-      localStorage.setItem('token', token);
+      setUser(mockUser);
+      localStorage.setItem('user', JSON.stringify(mockUser));
+      localStorage.setItem('token', btoa(`${email}:${password}`));
     } catch (error) {
       throw new Error('Login failed');
     } finally {
@@ -70,23 +65,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const register = async (username: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${USERS_URL}/api/v1/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password }),
-      });
-      if (!res.ok) throw new Error('Registration failed');
-      const userData = await res.json();
-      const token = btoa(`${email}:${password}`);
+      // TODO: reemplazar con llamada real cuando Auth-Service esté listo
+      await new Promise(resolve => setTimeout(resolve, 500));
       const newUser: User = {
-        id: userData.id,
-        username: userData.username,
-        email: userData.email,
-        balance: userData.balance ?? 0,
+        id: btoa(email).slice(0, 12),
+        username,
+        email,
+        balance: 50000
       };
       setUser(newUser);
       localStorage.setItem('user', JSON.stringify(newUser));
-      localStorage.setItem('token', token);
+      localStorage.setItem('token', btoa(`${email}:${password}`));
     } catch (error) {
       throw new Error('Registration failed');
     } finally {
