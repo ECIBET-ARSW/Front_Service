@@ -5,7 +5,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { useGameRoom } from '../../../hooks/useRussianRoulette';
 import './WaitingRoom.css';
 
-const SEAT_POSITIONS = ['seat-left', 'seat-center', 'seat-right'];
+const BASE = '/img/Russian Roulette images/Frames';
+const IDLE_SPRITES = [1, 2, 3, 4].map(n => `${BASE}/Personaje ${n}/Estando quieto esperando.png`);
 
 const WaitingRoom = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -25,8 +26,11 @@ const WaitingRoom = () => {
   };
 
   const otherPlayers = room?.playerNames.filter(n => n !== user?.username) ?? [];
+  const allPlayers = room?.playerNames ?? [];
   const isHost = room?.hostId === user?.id;
   const canStart = (room?.playerCount ?? 0) >= 2;
+
+  const SEAT_POSITIONS = ['seat-left', 'seat-center', 'seat-right'];
 
   return (
     <div className="waiting-room">
@@ -36,12 +40,14 @@ const WaitingRoom = () => {
         <div className="wr-seats">
           {SEAT_POSITIONS.map((cls, i) => {
             const player = otherPlayers[i];
+            const globalIndex = player ? allPlayers.indexOf(player) : i + 1;
+            const sprite = IDLE_SPRITES[globalIndex % IDLE_SPRITES.length];
             return (
               <div key={cls} className={`wr-seat ${cls}`}>
                 {player ? (
                   <motion.div className="wr-player" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.15 }}>
                     <img
-                      src="/img/Russian Roulette images/Frames/Personaje 1/Estando quieto esperando.png"
+                      src={sprite}
                       alt={player}
                       className="wr-character"
                     />

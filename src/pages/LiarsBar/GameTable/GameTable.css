@@ -24,11 +24,12 @@
   position: absolute;
   top: 0; left: 0; right: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 24px;
-  padding: 12px 24px;
+  padding: 20px 24px;
   background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
   z-index: 10;
+  height: 60px;
 }
 
 .gt-round {
@@ -39,12 +40,25 @@
 }
 
 .gt-active-card {
-  font-size: 0.8rem;
-  color: #aaa;
-  letter-spacing: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
-.gt-active-card strong { color: #fff; }
+.gt-active-card-label {
+  font-size: 0.55rem;
+  letter-spacing: 2px;
+  color: #f0a500;
+  text-transform: uppercase;
+}
+
+.gt-active-card-img {
+  height: 120px;
+  width: auto;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 6px rgba(240,165,0,0.7));
+}
 
 .gt-timer {
   font-size: 1rem;
@@ -130,6 +144,25 @@
 .gt-opponent-cards {
   font-size: 0.65rem;
   color: #888;
+}
+
+.gt-opponent-shots {
+  display: flex;
+  gap: 4px;
+}
+
+.gt-shot-chamber {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid #555;
+  background: #1a1a1a;
+}
+
+.gt-shot-chamber.fired {
+  background: #c0392b;
+  border-color: #e74c3c;
+  box-shadow: 0 0 4px rgba(192,57,43,0.7);
 }
 
 .gt-turn-indicator {
@@ -261,6 +294,13 @@
 
 .gt-select:focus { outline: none; border-color: #f0a500; }
 
+.gt-declared-card {
+  border-color: #f0a500;
+  color: #f0a500;
+  cursor: default;
+  font-weight: bold;
+}
+
 .gt-btn-play {
   background: #f0a500;
   color: #000;
@@ -291,6 +331,22 @@
   border-radius: 2px;
   animation: pulse-red 1.5s infinite;
 }
+
+.gt-btn-pass {
+  background: transparent;
+  color: #888;
+  border: 1px solid #555;
+  padding: 10px 24px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  font-weight: bold;
+  letter-spacing: 3px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.gt-btn-pass:hover { border-color: #fff; color: #fff; }
 
 @keyframes pulse-red {
   0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.6); }

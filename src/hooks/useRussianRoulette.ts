@@ -3,7 +3,7 @@ import { useWebSocket } from './useWebSocket';
 
 const BASE_URL = import.meta.env.VITE_RUSSIAN_ROULETTE_URL ?? 'http://localhost:8091';
 
-export type CardType = 'KING' | 'ACE' | 'JOKER';
+export type CardType = 'KING' | 'ACE' | 'QUEEN' | 'JOKER';
 export type RoomStatus = 'WAITING' | 'IN_PROGRESS' | 'FINISHED';
 export type GameEventType =
   | 'GAME_STARTED' | 'CARDS_PLAYED' | 'ACCUSED'
@@ -28,6 +28,7 @@ export interface PlayerState {
   eliminated: boolean;
   spectator: boolean;
   isCurrentTurn: boolean;
+  shotsFired: number;
 }
 
 export interface RevealedPlay {
@@ -56,6 +57,8 @@ export interface GameEvent {
   players: PlayerState[];
   revealedPlay?: RevealedPlay;
   shotResult?: ShotResult;
+  shotsFired?: number;
+  totalChambers?: number;
   winnerId?: string;
   winnerUsername?: string;
 }
@@ -203,6 +206,11 @@ export function useGameRoom(userId: string | undefined, roomId: string | undefin
     sendMessage(`/app/room/${roomId}/shoot`, userId);
   }, [roomId, userId, sendMessage]);
 
+  const pass = useCallback(() => {
+    if (!roomId || !userId) return;
+    sendMessage(`/app/room/${roomId}/pass`, userId);
+  }, [roomId, userId, sendMessage]);
+
   const leaveRoom = async () => {
     if (!roomId || !userId) return;
     await fetch(`${BASE_URL}/api/games/liars-bar/rooms/${roomId}/leave?userId=${userId}`, {
@@ -221,6 +229,7 @@ export function useGameRoom(userId: string | undefined, roomId: string | undefin
     startGame,
     playCards,
     accuse,
+    pass,
     shoot,
     leaveRoom,
     fetchHand,

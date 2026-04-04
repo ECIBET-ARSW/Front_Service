@@ -6,31 +6,21 @@ import { useGameRoom, CardType, GameEvent } from '../../../hooks/useRussianRoule
 import './GameTable.css';
 
 const BASE_URL = import.meta.env.VITE_RUSSIAN_ROULETTE_URL ?? 'http://localhost:8091';
-const BASE = '/img/Russian Roulette images/Frames/Personaje 1';
-const BASE2 = '/img/Russian Roulette images/Frames/Personaje 2';
+const BASE = '/img/Russian Roulette images/Frames';
 
-const OPPONENT_SPRITES: Record<string, string>[] = [
-  {
-    idle:         `${BASE}/Estando quieto esperando.png`,
-    playingCards: `${BASE}/Poniendo cartas.png`,
-    accusing:     `${BASE}/Acusando.png`,
-    shooting:     `${BASE}/Apuntando pistola.png`,
-    surviving:    `${BASE}/Salvandose.png`,
-    dying:        `${BASE}/Muriendo.png`,
-  },
-  {
-    idle:         `${BASE2}/Quieta esperando.png`,
-    playingCards: `${BASE2}/Jugando las cartas.png`,
-    accusing:     `${BASE2}/Acusando.png`,
-    shooting:     `${BASE2}/Apuntandose.png`,
-    surviving:    `${BASE2}/Salvandose.png`,
-    dying:        `${BASE2}/Muriendo.png`,
-  },
-];
+const OPPONENT_SPRITES: Record<string, string>[] = [1, 2, 3, 4].map(n => ({
+  idle:         `${BASE}/Personaje ${n}/Estando quieto esperando.png`,
+  playingCards: `${BASE}/Personaje ${n}/Poniendo cartas.png`,
+  accusing:     `${BASE}/Personaje ${n}/Acusando.png`,
+  shooting:     `${BASE}/Personaje ${n}/Apuntando pistola.png`,
+  surviving:    `${BASE}/Personaje ${n}/Salvandose.png`,
+  dying:        `${BASE}/Personaje ${n}/Muriendo.png`,
+}));
 
 const CARD_IMAGES: Record<CardType, string> = {
   KING:  '/img/Russian Roulette images/Cartas/King Card.png',
   ACE:   '/img/Russian Roulette images/Cartas/Ace Card.png',
+  QUEEN: '/img/Russian Roulette images/Cartas/Queen Card.png',
   JOKER: '/img/Russian Roulette images/Cartas/Joker Card.png',
 };
 
@@ -41,7 +31,7 @@ const GameTable = () => {
 
   const {
     room: currentRoom, gameEvent, currentTurnPlayerId, setCurrentTurnPlayerId,
-    myCards, playCards, accuse, shoot, connected, fetchHand,
+    myCards, playCards, accuse, pass, shoot, connected, fetchHand,
   } = useGameRoom(user?.id, roomId);
 
   const [lookingAtCards, setLookingAtCards]   = useState(false);
@@ -52,9 +42,15 @@ const GameTable = () => {
   const [timer, setTimer]                     = useState(30);
   const [lastPlay, setLastPlay]               = useState<{ username: string; message: string } | null>(null);
   const [activeCard, setActiveCard]           = useState<CardType | null>(null);
+
+  useEffect(() => {
+    if (activeCard) setDeclaredCard(activeCard);
+  }, [activeCard]);
   const [currentRound, setCurrentRound]       = useState(1);
   const [players, setPlayers]                 = useState<GameEvent['players']>([]);
   const [opponentAnims, setOpponentAnims]     = useState<Record<string, string>>({});
+  const [shotsFired, setShotsFired]           = useState(0);
+  const [totalChambers, setTotalChambers]     = useState(6);
 
   const setOpponentAnim = (userId: string, anim: string, duration = 1500) => {
     setOpponentAnims(prev => ({ ...prev, [userId]: anim }));
@@ -66,6 +62,8 @@ const GameTable = () => {
     if (event.currentRound) setCurrentRound(event.currentRound);
     if (event.players?.length) setPlayers(event.players);
     if (event.currentTurnPlayerId) setCurrentTurnPlayerId(event.currentTurnPlayerId);
+    if (event.shotsFired !== undefined) setShotsFired(event.shotsFired);
+    if (event.totalChambers) setTotalChambers(event.totalChambers);
     setTimer(event.turnTimerSeconds ?? 30);
 
     switch (event.type) {
@@ -90,7 +88,7 @@ const GameTable = () => {
         if (event.revealedPlay?.loserPlayerId === user?.id) {
           setOverlay({
             type: 'shoot',
-            message: `¡Te atraparon! Debes jalar el gatillo.\n${event.revealedPlay.wasLying ? 'Estabas mintiendo.' : 'Dijiste la verdad pero te acusaron.'}`,
+            message: `Te atraparon. Debes jalar el gatillo.\n${event.revealedPlay.wasLying ? 'Estabas mintiendo.' : 'Dijiste la verdad pero te acusaron.'}`,
           });
         } else {
           setOverlay({ type: 'info', message: event.message });
@@ -107,16 +105,16 @@ const GameTable = () => {
             setOpponentAnim(playerId, eliminated ? 'dying' : 'surviving', 3000);
           if (playerId === user?.id) {
             if (eliminated) {
-              setOverlay({ type: 'dead', message: '💀 Fuiste eliminado. Ahora eres espectador.' });
+              setOverlay({ type: 'dead', message: 'Fuiste eliminado. Ahora eres espectador.' });
             } else {
-              setOverlay({ type: 'survived', message: '😅 ¡Sobreviviste! El gatillo falló.' });
+              setOverlay({ type: 'survived', message: 'Sobreviviste. El gatillo fallo.' });
               setTimeout(() => setOverlay(null), 3000);
             }
           } else {
             const p = event.players.find(p => p.userId === playerId);
             setOverlay({
               type: 'info',
-              message: eliminated ? `💀 ${p?.username} fue eliminado` : `😅 ${p?.username} sobrevivió`,
+              message: eliminated ? `${p?.username} fue eliminado` : `${p?.username} sobrevivio`,
             });
             setTimeout(() => setOverlay(null), 3000);
           }
@@ -124,7 +122,7 @@ const GameTable = () => {
         break;
 
       case 'GAME_OVER':
-        setOverlay({ type: 'winner', message: `🏆 ${event.winnerUsername} gana el pozo` });
+        setOverlay({ type: 'winner', message: `${event.winnerUsername} gana el pozo` });
         setTimeout(() => navigate('/games/liars-bar'), 5000);
         break;
     }
@@ -150,7 +148,9 @@ const GameTable = () => {
   }, [gameEvent]);
 
   const isMyTurn = currentTurnPlayerId === user?.id;
+  const myCardCount = myCards.length;
   const canAccuse = isMyTurn && lastPlay !== null;
+  const canPass = isMyTurn && myCardCount === 0;
 
   const handlePlayCards = () => {
     if (!user || selectedIndices.size === 0) return;
@@ -178,31 +178,41 @@ const GameTable = () => {
 
       <div className="gt-hud-top">
         <div className="gt-round">Ronda {currentRound}</div>
-        <div className="gt-active-card">Carta activa: <strong>{activeCard ?? '...'}</strong></div>
-        <div className={`gt-timer ${timer <= 10 ? 'urgent' : ''}`}>⏱ {timer}s</div>
+        {activeCard && (
+          <div className="gt-active-card">
+            <span className="gt-active-card-label">CARTA ACTIVA</span>
+            <img src={CARD_IMAGES[activeCard]} alt={activeCard} className="gt-active-card-img" />
+          </div>
+        )}
+        <div className={`gt-timer ${timer <= 10 ? 'urgent' : ''}`}>{timer}s</div>
         <div className="gt-pot">Pozo: {currentRoom?.pot?.toLocaleString() ?? 0} COP</div>
         <div className={`gt-conn ${connected ? 'on' : 'off'}`} />
       </div>
 
       <div className="gt-opponents">
-        {otherPlayers.map((p, i) => {
-          const sprites = OPPONENT_SPRITES[i % OPPONENT_SPRITES.length];
+        {otherPlayers.map((p) => {
+          const globalIndex = players.findIndex(pl => pl.userId === p.userId);
+          const sprites = OPPONENT_SPRITES[globalIndex % OPPONENT_SPRITES.length];
           const anim = opponentAnims[p.userId] ?? 'idle';
           const sprite = p.eliminated ? sprites.dying : (sprites[anim] ?? sprites.idle);
           return (
             <motion.div
               key={p.userId}
               className={`gt-opponent ${p.isCurrentTurn ? 'active-turn' : ''} ${p.eliminated ? 'eliminated' : ''}`}
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.1 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             >
               <img src={sprite} alt={p.username} className="gt-opponent-sprite"
                 style={{ filter: p.eliminated ? 'grayscale(1) brightness(0.4)' : undefined }}
               />
               <div className="gt-opponent-info">
                 <span className="gt-opponent-name">{p.username}</span>
-                <span className="gt-opponent-cards">🃏 {p.cardCount}</span>
-                {p.isCurrentTurn && <span className="gt-turn-indicator">← TURNO</span>}
-                {p.eliminated && <span className="gt-dead-label">💀</span>}
+                <div className="gt-opponent-shots">
+                  {Array.from({ length: totalChambers }).map((_, i) => (
+                    <div key={i} className={`gt-shot-chamber ${i < p.shotsFired ? 'fired' : ''}`} />
+                  ))}
+                </div>
+                {p.isCurrentTurn && <span className="gt-turn-indicator">TURNO</span>}
+                {p.eliminated && <span className="gt-dead-label">ELIMINADO</span>}
               </div>
             </motion.div>
           );
@@ -211,14 +221,13 @@ const GameTable = () => {
 
       {lastPlay && (
         <div className="gt-last-play">
-          <span>{lastPlay.username} jugó: </span>
           <strong>{lastPlay.message}</strong>
         </div>
       )}
 
       <div className="gt-bottom">
         <button className="gt-btn-look" onClick={() => { if (!lookingAtCards) fetchHand(); setLookingAtCards(prev => !prev); }}>
-          {lookingAtCards ? '🙈 Ocultar cartas' : '👁 Ver mis cartas'}
+          {lookingAtCards ? 'Ocultar cartas' : 'Ver mis cartas'}
         </button>
 
         <AnimatePresence>
@@ -239,19 +248,19 @@ const GameTable = () => {
 
         {isMyTurn && !overlay && (
           <motion.div className="gt-actions" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="gt-play-controls">
-              <select className="gt-select" value={declaredCard} onChange={e => setDeclaredCard(e.target.value as CardType)}>
-                <option value="KING">KING</option>
-                <option value="ACE">ACE</option>
-              </select>
-              <select className="gt-select" value={declaredCount} onChange={e => setDeclaredCount(Number(e.target.value))}>
-                {[1,2,3].map(n => <option key={n} value={n}>{n} carta{n > 1 ? 's' : ''}</option>)}
-              </select>
-              <button className="gt-btn-play" onClick={handlePlayCards} disabled={selectedIndices.size === 0}>
-                Jugar cartas ({selectedIndices.size})
-              </button>
-            </div>
-            {canAccuse && <button className="gt-btn-accuse" onClick={handleAccuse}>⚠️ ¡MENTIRA!</button>}
+            {myCardCount > 0 && (
+              <div className="gt-play-controls">
+                <span className="gt-select gt-declared-card">{declaredCard}</span>
+                <select className="gt-select" value={declaredCount} onChange={e => setDeclaredCount(Number(e.target.value))}>
+                  {[1,2,3].map(n => <option key={n} value={n}>{n} carta{n > 1 ? 's' : ''}</option>)}
+                </select>
+                <button className="gt-btn-play" onClick={handlePlayCards} disabled={selectedIndices.size === 0}>
+                  Jugar cartas ({selectedIndices.size})
+                </button>
+              </div>
+            )}
+            {canAccuse && <button className="gt-btn-accuse" onClick={handleAccuse}>MENTIRA</button>}
+            {canPass && <button className="gt-btn-pass" onClick={() => pass()}>PASAR</button>}
           </motion.div>
         )}
       </div>
@@ -266,7 +275,7 @@ const GameTable = () => {
                   <div className="gt-chambers">
                     {Array.from({ length: 6 }).map((_, i) => <div key={i} className="gt-chamber" />)}
                   </div>
-                  <button className="gt-btn-shoot" onClick={handleShoot}>🔫 JALAR EL GATILLO</button>
+                  <button className="gt-btn-shoot" onClick={handleShoot}>JALAR EL GATILLO</button>
                 </>
               )}
               {overlay.type === 'dead' && (
