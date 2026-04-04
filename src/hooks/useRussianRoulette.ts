@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWebSocket } from './useWebSocket';
 
-const BASE_URL = import.meta.env.VITE_RUSSIAN_ROULETTE_URL ?? 'http://localhost:8091';
+const BASE_URL = import.meta.env.VITE_API_GATEWAY_URL ?? 'http://localhost:8079';
+const WS_URL = import.meta.env.VITE_RUSSIAN_ROULETTE_URL ?? 'http://localhost:8091';
+
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${localStorage.getItem('token') ?? ''}`,
+});
 
 export type CardType = 'KING' | 'ACE' | 'QUEEN' | 'JOKER';
 export type RoomStatus = 'WAITING' | 'IN_PROGRESS' | 'FINISHED';
@@ -78,7 +84,7 @@ export function useLobby(userId: string | undefined) {
 
   const fetchRooms = useCallback(async () => {
     try {
-      const res = await fetch(`${BASE_URL}/api/games/liars-bar/rooms`);
+      const res = await fetch(`${BASE_URL}/api/games/liars-bar/rooms`, { headers: authHeaders() });
       const data: RoomSummary[] = await res.json();
       setRooms(data);
     } catch {
@@ -97,7 +103,7 @@ export function useLobby(userId: string | undefined) {
     try {
       const res = await fetch(`${BASE_URL}/api/games/liars-bar/rooms`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ userId, username, roomName, buyIn }),
       });
       if (!res.ok) throw new Error('Error creando sala');
@@ -116,7 +122,7 @@ export function useLobby(userId: string | undefined) {
     try {
       const res = await fetch(`${BASE_URL}/api/games/liars-bar/rooms/${roomId}/join`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ userId, username }),
       });
       if (!res.ok) throw new Error('Error uniéndose a la sala');
@@ -144,7 +150,7 @@ export function useGameRoom(userId: string | undefined, roomId: string | undefin
     if (!roomId) return;
     const fetch_ = async () => {
       try {
-        const res = await fetch(`${BASE_URL}/api/games/liars-bar/rooms/${roomId}`);
+        const res = await fetch(`${BASE_URL}/api/games/liars-bar/rooms/${roomId}`, { headers: authHeaders() });
         if (res.ok) setRoom(await res.json());
       } catch {}
     };
@@ -156,7 +162,7 @@ export function useGameRoom(userId: string | undefined, roomId: string | undefin
   const fetchHand = useCallback(async () => {
     if (!roomId || !userId) return;
     try {
-      const res = await fetch(`${BASE_URL}/api/games/liars-bar/rooms/${roomId}/hand?userId=${userId}`);
+      const res = await fetch(`${BASE_URL}/api/games/liars-bar/rooms/${roomId}/hand?userId=${userId}`, { headers: authHeaders() });
       if (res.ok) {
         const cards: CardType[] = await res.json();
         setMyCards(cards);
@@ -180,7 +186,7 @@ export function useGameRoom(userId: string | undefined, roomId: string | undefin
   }, [gameEvent]);
 
   const { connected, sendMessage } = useWebSocket({
-    url: `${BASE_URL}/ws`,
+    url: `${WS_URL}/ws`,
     topic: roomId ? `/topic/room/${roomId}` : '',
     onMessage: handleMessage,
     enabled: !!roomId,
@@ -215,6 +221,7 @@ export function useGameRoom(userId: string | undefined, roomId: string | undefin
     if (!roomId || !userId) return;
     await fetch(`${BASE_URL}/api/games/liars-bar/rooms/${roomId}/leave?userId=${userId}`, {
       method: 'DELETE',
+      headers: authHeaders(),
     });
   };
 

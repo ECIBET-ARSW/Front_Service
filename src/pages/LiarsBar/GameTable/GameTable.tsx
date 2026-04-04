@@ -5,7 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useGameRoom, CardType, GameEvent } from '../../../hooks/useRussianRoulette';
 import './GameTable.css';
 
-const BASE_URL = import.meta.env.VITE_RUSSIAN_ROULETTE_URL ?? 'http://localhost:8091';
+const BASE_URL = import.meta.env.VITE_API_GATEWAY_URL ?? 'http://localhost:8079';
 const BASE = '/img/Russian Roulette images/Frames';
 
 const OPPONENT_SPRITES: Record<string, string>[] = [1, 2, 3, 4].map(n => ({
@@ -74,9 +74,12 @@ const GameTable = () => {
 
       case 'CARDS_PLAYED':
         fetchHand();
-        setLastPlay({ username: event.currentTurnUsername, message: event.message });
-        if (event.lastPlayerId && event.lastPlayerId !== user?.id)
-          setOpponentAnim(event.lastPlayerId, 'playingCards');
+        if (event.lastPlayerId) {
+          const whoPlayed = event.players.find(p => p.userId === event.lastPlayerId);
+          setLastPlay({ username: whoPlayed?.username ?? '', message: event.message });
+          if (event.lastPlayerId !== user?.id)
+            setOpponentAnim(event.lastPlayerId, 'playingCards');
+        }
         break;
 
       case 'ACCUSED':
@@ -130,7 +133,10 @@ const GameTable = () => {
 
   useEffect(() => {
     if (!roomId || !user?.id) return;
-    fetch(`${BASE_URL}/api/games/liars-bar/rooms/${roomId}/state`)
+    const token = localStorage.getItem('token') ?? '';
+    fetch(`${BASE_URL}/api/games/liars-bar/rooms/${roomId}/state`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
       .then(r => r.ok ? r.json() : null)
       .then((data: GameEvent | null) => { if (data) processEvent(data); })
       .catch(() => {});

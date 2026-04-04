@@ -7,15 +7,18 @@ import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
 interface UseWebSocketOptions {
-  url: string;           // WebSocket endpoint, e.g. http://localhost:8090/ws
-  topic: string;         // STOMP topic to subscribe, e.g. /topic/roulette/{sessionId}
+  url: string;
+  topic: string;
   onMessage: (body: unknown) => void;
-  enabled?: boolean;     // Allows delaying connection until a sessionId is ready
+  enabled?: boolean;
+  privateTopic?: string;
+  onPrivateMessage?: (body: unknown) => void;
 }
 
-export function useWebSocket({ url, topic, onMessage, enabled = true }: UseWebSocketOptions) {
+export function useWebSocket({ url, topic, onMessage, enabled = true, privateTopic, onPrivateMessage }: UseWebSocketOptions) {
   const clientRef = useRef<Client | null>(null);
   const subscriptionRef = useRef<StompSubscription | null>(null);
+  const privateSubRef = useRef<StompSubscription | null>(null);
   const [connected, setConnected] = useState(false);
 
   const sendMessage = useCallback((destination: string, body: unknown) => {
@@ -39,12 +42,13 @@ export function useWebSocket({ url, topic, onMessage, enabled = true }: UseWebSo
       onConnect: () => {
         setConnected(true);
         subscriptionRef.current = client.subscribe(topic, (msg: IMessage) => {
-          try {
-            onMessage(JSON.parse(msg.body));
-          } catch {
-            onMessage(msg.body);
-          }
+          try { onMessage(JSON.parse(msg.body)); } catch { onMessage(msg.body); }
         });
+        if (privateTopic && onPrivateMessage) {
+          privateSubRef.current = client.subscribe(privateTopic, (msg: IMessage) => {
+            try { onPrivateMessage(JSON.parse(msg.body)); } catch { onPrivateMessage(msg.body); }
+          });
+        }
       },
       onDisconnect: () => setConnected(false),
       onStompError: () => setConnected(false),
@@ -55,10 +59,11 @@ export function useWebSocket({ url, topic, onMessage, enabled = true }: UseWebSo
 
     return () => {
       subscriptionRef.current?.unsubscribe();
+      privateSubRef.current?.unsubscribe();
       client.deactivate();
       setConnected(false);
     };
-  }, [url, topic, enabled]); // onMessage excluded intentionally — use useCallback on the caller side
+  }, [url, topic, enabled]);
 
   return { connected, sendMessage };
 }
