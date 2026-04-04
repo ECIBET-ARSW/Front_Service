@@ -2,12 +2,13 @@
 // Lists all four casino games as GameCard components and includes
 // a promotional banner linking to the Sports betting page.
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import GameCard from '../../components/GameCard/GameCard';
 import { Game } from '../../types';
 import './Games.css';
 
 const Games = () => {
+  const navigate = useNavigate();
   // Full catalog of casino games — all marked unavailable until implemented
   const games: Game[] = [
     {
@@ -33,12 +34,12 @@ const Games = () => {
     {
       id: '3',
       name: 'Ruleta Rusa',
-      description: 'Juego de cartas con 4 jugadores. Alta tensión y adrenalina pura',
-      minBet: 100,
+      description: 'Liar\'s Bar — Engaña, acusa y sobrevive. El último en pie gana el pozo.',
+      minBet: 5000,
       maxPlayers: 4,
       image: '/img/Russian Roulette.jpg',
       gradient: '3',
-      available: false
+      available: true
     },
     {
       id: '4',
@@ -75,7 +76,10 @@ const Games = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
           >
-            <GameCard game={game} />
+            <GameCard
+              game={game}
+              onClick={game.id === '3' ? () => navigate('/games/liars-bar') : undefined}
+            />
           </motion.div>
         ))}
       </div>

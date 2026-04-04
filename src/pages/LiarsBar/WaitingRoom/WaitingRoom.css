@@ -1,0 +1,238 @@
+/* ── Waiting Room ───────────────────────────────────────────────── */
+.waiting-room {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+  font-family: 'Courier New', monospace;
+}
+
+.wr-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.wr-background {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  filter: brightness(0.6);
+}
+
+/* ── HUD superior ───────────────────────────────────────────────── */
+.wr-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+}
+
+.wr-room-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wr-room-name {
+  color: #f0a500;
+  font-size: 1.1rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.wr-room-buyin {
+  color: #27ae60;
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+}
+
+.wr-connection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: #888;
+  letter-spacing: 2px;
+}
+
+.wr-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.wr-dot.connected    { background: #27ae60; box-shadow: 0 0 6px #27ae60; }
+.wr-dot.disconnected { background: #c0392b; box-shadow: 0 0 6px #c0392b; }
+
+/* ── Asientos ───────────────────────────────────────────────────── */
+.wr-seats {
+  position: absolute;
+  top: 15%;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 60px;
+  padding: 0 80px;
+}
+
+.wr-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.wr-seat.seat-center { transform: scale(1.1); }
+.wr-seat.seat-left   { transform: scale(0.9) translateX(10px); }
+.wr-seat.seat-right  { transform: scale(0.9) translateX(-10px); }
+
+.wr-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.wr-character {
+  height: 200px;
+  width: auto;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8));
+}
+
+.wr-player-name {
+  background: rgba(0,0,0,0.7);
+  border: 1px solid #f0a500;
+  color: #f0a500;
+  padding: 4px 12px;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border-radius: 2px;
+}
+
+.wr-empty-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.3;
+}
+
+.wr-empty-icon {
+  width: 80px;
+  height: 80px;
+  border: 2px dashed #555;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: #555;
+}
+
+.wr-empty-label {
+  font-size: 0.65rem;
+  color: #555;
+  letter-spacing: 2px;
+}
+
+/* ── Panel inferior ─────────────────────────────────────────────── */
+.wr-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
+  padding: 24px 40px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.wr-players-count {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 2rem;
+  color: #fff;
+}
+
+.wr-slash { color: #555; }
+
+.wr-players-label {
+  font-size: 0.7rem;
+  color: #888;
+  letter-spacing: 2px;
+  margin-left: 8px;
+}
+
+.wr-pot {
+  font-size: 0.85rem;
+  color: #27ae60;
+  letter-spacing: 2px;
+}
+
+.wr-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.wr-btn-start {
+  background: #f0a500;
+  color: #000;
+  border: none;
+  padding: 14px 32px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  font-weight: bold;
+  letter-spacing: 3px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+
+.wr-btn-start:hover:not(:disabled) { background: #ffc107; }
+.wr-btn-start:disabled {
+  background: #333;
+  color: #666;
+  cursor: not-allowed;
+  font-size: 0.7rem;
+}
+
+.wr-waiting-msg {
+  font-size: 0.75rem;
+  color: #888;
+  letter-spacing: 2px;
+  text-align: right;
+}
+
+.wr-btn-leave {
+  background: transparent;
+  border: 1px solid #555;
+  color: #555;
+  padding: 8px 20px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.wr-btn-leave:hover {
+  border-color: #c0392b;
+  color: #c0392b;
+}

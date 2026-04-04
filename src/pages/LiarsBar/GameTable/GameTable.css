@@ -1,0 +1,471 @@
+/* ── Game Table ─────────────────────────────────────────────────── */
+.game-table {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  background: #000;
+  font-family: 'Courier New', monospace;
+  color: #fff;
+}
+
+.gt-background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  filter: brightness(0.55);
+}
+
+/* ── HUD superior ───────────────────────────────────────────────── */
+.gt-hud-top {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 20px 24px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
+  z-index: 10;
+  height: 60px;
+}
+
+.gt-round {
+  color: #f0a500;
+  font-size: 0.8rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.gt-active-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.gt-active-card-label {
+  font-size: 0.55rem;
+  letter-spacing: 2px;
+  color: #f0a500;
+  text-transform: uppercase;
+}
+
+.gt-active-card-img {
+  height: 120px;
+  width: auto;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 6px rgba(240,165,0,0.7));
+}
+
+.gt-timer {
+  font-size: 1rem;
+  color: #27ae60;
+  letter-spacing: 2px;
+  margin-left: auto;
+}
+
+.gt-timer.urgent {
+  color: #c0392b;
+  animation: blink 0.5s infinite;
+}
+
+@keyframes blink { 50% { opacity: 0.3; } }
+
+.gt-pot {
+  font-size: 0.8rem;
+  color: #27ae60;
+  letter-spacing: 2px;
+}
+
+.gt-conn {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+.gt-conn.on  { background: #27ae60; box-shadow: 0 0 6px #27ae60; }
+.gt-conn.off { background: #c0392b; }
+
+/* ── Oponentes ──────────────────────────────────────────────────── */
+.gt-opponents {
+  position: absolute;
+  bottom: 100px;
+  left: 0; right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 80px;
+  padding: 0 60px;
+  z-index: 5;
+}
+
+.gt-opponent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.2s;
+}
+
+.gt-opponent.active-turn {
+  filter: drop-shadow(0 0 12px rgba(240, 165, 0, 0.8));
+  transform: scale(1.05);
+}
+
+.gt-opponent-sprite {
+  height: 280px;
+  width: auto;
+  image-rendering: pixelated;
+}
+
+.gt-opponent-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.gt-opponent-name {
+  background: rgba(0,0,0,0.7);
+  border: 1px solid #333;
+  color: #fff;
+  padding: 3px 10px;
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  border-radius: 2px;
+}
+
+.gt-opponent.active-turn .gt-opponent-name {
+  border-color: #f0a500;
+  color: #f0a500;
+}
+
+.gt-opponent-cards {
+  font-size: 0.65rem;
+  color: #888;
+}
+
+.gt-opponent-shots {
+  display: flex;
+  gap: 4px;
+}
+
+.gt-shot-chamber {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid #555;
+  background: #1a1a1a;
+}
+
+.gt-shot-chamber.fired {
+  background: #c0392b;
+  border-color: #e74c3c;
+  box-shadow: 0 0 4px rgba(192,57,43,0.7);
+}
+
+.gt-turn-indicator {
+  font-size: 0.6rem;
+  color: #f0a500;
+  letter-spacing: 2px;
+  animation: blink 1s infinite;
+}
+
+.gt-dead-label {
+  font-size: 1rem;
+}
+
+/* ── Última jugada ──────────────────────────────────────────────── */
+.gt-last-play {
+  position: absolute;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.8);
+  border: 1px solid #f0a500;
+  padding: 8px 20px;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  color: #aaa;
+  border-radius: 2px;
+  text-align: center;
+  z-index: 6;
+  white-space: nowrap;
+}
+
+.gt-last-play strong { color: #fff; display: block; margin-top: 4px; }
+
+/* ── Personaje propio ───────────────────────────────────────────── */
+.gt-self {
+  position: absolute;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+}
+
+.gt-self-sprite {
+  height: 220px;
+  width: auto;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 16px rgba(0,0,0,0.9));
+}
+
+/* ── Panel inferior ─────────────────────────────────────────────── */
+.gt-bottom {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.97) 70%, transparent);
+  padding: 16px 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  z-index: 10;
+}
+
+.gt-btn-look {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid #333;
+  color: #888;
+  padding: 6px 16px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+  align-self: flex-end;
+}
+
+.gt-btn-look:hover { border-color: #fff; color: #fff; }
+
+/* ── Cartas ─────────────────────────────────────────────────────── */
+.gt-cards {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.gt-card {
+  height: 100px;
+  width: auto;
+  image-rendering: pixelated;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.gt-card.selected {
+  border-color: #f0a500;
+  transform: translateY(-12px);
+  filter: drop-shadow(0 0 8px rgba(240,165,0,0.6));
+}
+
+/* ── Acciones ───────────────────────────────────────────────────── */
+.gt-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.gt-play-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gt-select {
+  background: #0d0d1a;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 8px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.gt-select:focus { outline: none; border-color: #f0a500; }
+
+.gt-declared-card {
+  border-color: #f0a500;
+  color: #f0a500;
+  cursor: default;
+  font-weight: bold;
+}
+
+.gt-btn-play {
+  background: #f0a500;
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+
+.gt-btn-play:hover:not(:disabled) { background: #ffc107; }
+.gt-btn-play:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+.gt-btn-accuse {
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  font-weight: bold;
+  letter-spacing: 3px;
+  cursor: pointer;
+  border-radius: 2px;
+  animation: pulse-red 1.5s infinite;
+}
+
+.gt-btn-pass {
+  background: transparent;
+  color: #888;
+  border: 1px solid #555;
+  padding: 10px 24px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  font-weight: bold;
+  letter-spacing: 3px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.gt-btn-pass:hover { border-color: #fff; color: #fff; }
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.6); }
+  50%       { box-shadow: 0 0 0 8px rgba(192,57,43,0); }
+}
+
+/* ── Overlay ────────────────────────────────────────────────────── */
+.gt-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 160px;
+  z-index: 50;
+}
+
+.gt-overlay.shoot   { background: rgba(0,0,0,0.5); }
+.gt-overlay.dead    { background: rgba(80,0,0,0.5); }
+.gt-overlay.shoot,
+.gt-overlay.winner {
+  align-items: center;
+  padding-bottom: 0;
+}
+.gt-overlay.info {
+  background: transparent;
+  pointer-events: none;
+  align-items: flex-start;
+  padding-top: 80px;
+}
+
+.gt-overlay.survived {
+  background: transparent;
+  pointer-events: none;
+  align-items: flex-start;
+  padding-top: 80px;
+}
+
+.gt-overlay.info .gt-overlay-box,
+.gt-overlay.survived .gt-overlay-box {
+  background: rgba(0,0,0,0.75);
+  border-color: #555;
+  padding: 10px 20px;
+  gap: 0;
+}
+
+.gt-overlay.info .gt-overlay-message,
+.gt-overlay.survived .gt-overlay-message {
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+}
+
+.gt-overlay-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 28px;
+  border: 2px solid #f0a500;
+  background: rgba(13,13,26,0.92);
+  border-radius: 4px;
+  max-width: 360px;
+  text-align: center;
+}
+
+.gt-overlay.dead    .gt-overlay-box { border-color: #c0392b; }
+.gt-overlay.survived .gt-overlay-box { border-color: #27ae60; }
+.gt-overlay.winner  .gt-overlay-box { border-color: #f0a500; }
+
+.gt-overlay-message {
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  line-height: 1.6;
+  white-space: pre-line;
+  color: #fff;
+}
+
+/* Cámaras del revólver */
+.gt-chambers {
+  display: flex;
+  gap: 10px;
+}
+
+.gt-chamber {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #555;
+  background: #1a1a1a;
+}
+
+.gt-btn-shoot {
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  padding: 14px 36px;
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: bold;
+  letter-spacing: 4px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.2s;
+  animation: pulse-red 1s infinite;
+}
+
+.gt-btn-shoot:hover { background: #e74c3c; }
+
+.gt-btn-spectate {
+  background: transparent;
+  border: 1px solid #555;
+  color: #888;
+  padding: 10px 24px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.gt-btn-spectate:hover { border-color: #fff; color: #fff; }
