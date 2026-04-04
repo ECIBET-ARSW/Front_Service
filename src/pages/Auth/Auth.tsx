@@ -11,7 +11,9 @@ const Auth = () => {
   // true = login mode, false = register mode
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
-    username: '',
+    firstName: '',
+    lastName: '',
+    birthDate: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -38,7 +40,7 @@ const Auth = () => {
       }
     } else {
       // Registration validations
-      if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
+      if (!formData.firstName || !formData.lastName || !formData.birthDate || !formData.email || !formData.password || !formData.confirmPassword) {
         setError('Por favor completa todos los campos');
         return;
       }
@@ -51,7 +53,7 @@ const Auth = () => {
         return;
       }
       try {
-        await register(formData.username, formData.email, formData.password);
+        await register(formData.firstName, formData.lastName, formData.birthDate, formData.email, formData.password);
         navigate('/');
       } catch (err) {
         setError('Error al registrar usuario');
@@ -71,7 +73,7 @@ const Auth = () => {
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setError('');
-    setFormData({ username: '', email: '', password: '', confirmPassword: '' });
+    setFormData({ firstName: '', lastName: '', birthDate: '', email: '', password: '', confirmPassword: '' });
   };
 
   return (
@@ -91,20 +93,45 @@ const Auth = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
-          {/* Username field — only shown in register mode */}
+          {/* Register fields */}
           {!isLogin && (
-            <div className="form-group">
-              <label htmlFor="username">Nombre de Usuario</label>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                className="form-input"
-                placeholder="Tu nombre de usuario"
-                value={formData.username}
-                onChange={handleChange}
-              />
-            </div>
+            <>
+              <div className="form-group">
+                <label htmlFor="firstName">Nombre</label>
+                <input
+                  type="text"
+                  id="firstName"
+                  name="firstName"
+                  className="form-input"
+                  placeholder="Tu nombre"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="lastName">Apellido</label>
+                <input
+                  type="text"
+                  id="lastName"
+                  name="lastName"
+                  className="form-input"
+                  placeholder="Tu apellido"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="birthDate">Fecha de Nacimiento</label>
+                <input
+                  type="date"
+                  id="birthDate"
+                  name="birthDate"
+                  className="form-input"
+                  value={formData.birthDate}
+                  onChange={handleChange}
+                />
+              </div>
+            </>
           )}
 
           <div className="form-group">
