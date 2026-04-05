@@ -45,11 +45,13 @@ export interface PlacedBet {
   odds: number;
   amount: number;
   potentialWin: number;
-  status: 'PENDING' | 'WON' | 'LOST' | 'REJECTED';
+  status: 'PENDING' | 'WON' | 'LOST' | 'REJECTED' | 'VALIDATING';
   createdAt: string;
+  matchDisplay?: string;
+  scoreDisplay?: string;
 }
 
-export function useBetting(userId: string | undefined, updateBalance?: (balance: number) => void) {
+export function useBetting(userId: string | undefined, updateBalance?: (balance: number) => void, ) {
 
   const normalizeEvent = (e: any): BettingEvent => ({
     ...e,
@@ -64,11 +66,13 @@ export function useBetting(userId: string | undefined, updateBalance?: (balance:
     amount: b.stake ?? b.amount ?? 0,
     potentialWin: b.potentialWin ?? 0,
     createdAt: b.placedAt ?? b.createdAt ?? '',
+    matchDisplay: b.matchDisplay ?? undefined,
+    scoreDisplay: b.scoreDisplay ?? undefined,
   });
   const [events, setEvents] = useState<BettingEvent[]>([]);
   const [liveEvents, setLiveEvents] = useState<BettingEvent[]>([]);
   const [myBets, setMyBets] = useState<PlacedBet[]>([]);
-  const [selectedBets, setSelectedBets] = useState<{ selectionId: string; odds: number; label: string }[]>([]);
+  const [selectedBets, setSelectedBets] = useState<{ selectionId: string; eventId: string; odds: number; label: string }[]>([]);
   const { request, isLoading, error } = useApi<BettingEvent[]>();
 
   const fetchTodayEvents = useCallback(async () => {
@@ -125,11 +129,11 @@ export function useBetting(userId: string | undefined, updateBalance?: (balance:
     if (data) setMyBets((data as any[]).map(normalizeBet));
   }, [userId, request]);
 
-  const toggleSelection = useCallback((selectionId: string, odds: number, label: string) => {
+  const toggleSelection = useCallback((selectionId: string, odds: number, label: string, eventId: string) => {
     setSelectedBets(prev =>
-      prev.some(b => b.selectionId === selectionId)
-        ? prev.filter(b => b.selectionId !== selectionId)
-        : [...prev, { selectionId, odds, label }]
+      prev.some(b => b.selectionId === selectionId && b.eventId === eventId)
+        ? prev.filter(b => !(b.selectionId === selectionId && b.eventId === eventId))
+        : [...prev, { selectionId, eventId, odds, label }]
     );
   }, []);
 
@@ -137,24 +141,35 @@ export function useBetting(userId: string | undefined, updateBalance?: (balance:
 
   const totalOdds = selectedBets.reduce((acc, b) => acc * b.odds, 1);
 
-  const placeBet = useCallback(async (selectionId: string, stake: number): Promise<boolean> => {
+  const placeBet = useCallback(async (selectionId: string, stake: number, eventId: string): Promise<boolean> => {
     if (!userId) return false;
     const token = localStorage.getItem('token');
+
+    // Capturar balance actual ANTES de apostar
+    let balanceBeforeBet: number | null = null;
+    if (updateBalance) {
+      const walletRes = await fetch(`${API_GATEWAY_URL}/api/v1/wallets/${userId}/balance`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (walletRes.ok) {
+        const walletData = await walletRes.json();
+        balanceBeforeBet = walletData.data.balance;
+      }
+    }
+
     const result = await request(`${API_GATEWAY_URL}/api/v1/bets`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ selectionId, stake }),
+      body: JSON.stringify({ selectionId, stake, eventId }),
     });
     if (result) {
       await fetchMyBets();
-      if (updateBalance && userId) {
-        const token = localStorage.getItem('token');
-        const previousBalance = (result as any)?.balance;
-        // Polling hasta que el balance cambie (max 3s)
-        for (let i = 0; i < 6; i++) {
+      if (updateBalance && balanceBeforeBet !== null) {
+        // Polling hasta que el balance cambie respecto al valor antes de apostar (max 5s)
+        for (let i = 0; i < 10; i++) {
           await new Promise(resolve => setTimeout(resolve, 500));
           const walletRes = await fetch(`${API_GATEWAY_URL}/api/v1/wallets/${userId}/balance`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -162,8 +177,10 @@ export function useBetting(userId: string | undefined, updateBalance?: (balance:
           if (walletRes.ok) {
             const walletData = await walletRes.json();
             const newBalance = walletData.data.balance;
-            updateBalance(newBalance);
-            if (newBalance !== previousBalance) break;
+            if (newBalance !== balanceBeforeBet) {
+              updateBalance(newBalance);
+              break;
+            }
           }
         }
       }

@@ -58,7 +58,7 @@ const Sports = () => {
     setBetMessage(null);
     try {
       for (const bet of selectedBets) {
-        await placeBet(bet.selectionId, Number(stake));
+        await placeBet(bet.selectionId, Number(stake), bet.eventId);
       }
       clearSlip();
       setStake('');
@@ -103,15 +103,19 @@ const Sports = () => {
                   {myBets.map(bet => (
                     <div key={bet.id} className="match-card">
                       <div className="match-header">
-                        <span className="match-league">{bet.selectionName}</span>
+                        <span className="match-league">{bet.matchDisplay ?? bet.selectionName}</span>
                         <span className={`match-datetime ${bet.status.toLowerCase()}`}>{bet.status}</span>
                       </div>
                       <div className="match-teams">
-                        <div className="team">Cuota: {bet.odds.toFixed(2)}</div>
+                        <div className="team">{bet.selectionName}</div>
                         <div className="vs">|</div>
+                        <div className="team">Cuota: {bet.odds.toFixed(2)}</div>
+                      </div>
+                      <div className="match-teams">
                         <div className="team">Monto: ${bet.amount.toLocaleString()}</div>
                         <div className="vs">|</div>
                         <div className="team">Ganancia: ${bet.potentialWin.toLocaleString()}</div>
+                        {bet.scoreDisplay && <><div className="vs">|</div><div className="team">Marcador: {bet.scoreDisplay}</div></>}
                       </div>
                     </div>
                   ))}
@@ -153,7 +157,7 @@ const Sports = () => {
                       </div>
                       <MatchOdds
                         event={event}
-                        selectedBets={selectedBets.map(b => b.selectionId)}
+                        selectedBets={selectedBets.map(b => ({ selectionId: b.selectionId, eventId: b.eventId }))}
                         onToggle={toggleSelection}
                         liveOddsUpdate={oddsUpdates[event.id]}
                       />
@@ -178,7 +182,7 @@ const Sports = () => {
                       <div className="slip-bet-selection">{bet.label}</div>
                     </div>
                     <div className="slip-bet-odd">{bet.odds.toFixed(2)}</div>
-                    <button className="slip-bet-remove" onClick={() => toggleSelection(bet.selectionId, bet.odds, bet.label)}>×</button>
+                    <button className="slip-bet-remove" onClick={() => toggleSelection(bet.selectionId, bet.odds, bet.label, bet.eventId)}>×</button>
                   </div>
                 ))}
               </div>
@@ -212,8 +216,8 @@ const Sports = () => {
 // Subcomponente que muestra las cuotas de cada partido usando los markets del evento
 const MatchOdds = ({ event, selectedBets, onToggle, liveOddsUpdate }: {
   event: BettingEvent;
-  selectedBets: string[];
-  onToggle: (id: string, odds: number, label: string) => void;
+  selectedBets: { selectionId: string; eventId: string }[];
+  onToggle: (id: string, odds: number, label: string, eventId: string) => void;
   liveOddsUpdate?: any;
 }) => {
   const [selections, setSelections] = useState<{ id: string; name: string; odds: number }[]>([]);
@@ -249,8 +253,8 @@ const MatchOdds = ({ event, selectedBets, onToggle, liveOddsUpdate }: {
       {selections.map(sel => (
         <button
           key={sel.id}
-          className={`odd-btn ${selectedBets.includes(sel.id) ? 'selected' : ''}`}
-          onClick={() => onToggle(sel.id, sel.odds, sel.name)}
+          className={`odd-btn ${selectedBets.some(b => b.selectionId === sel.id && b.eventId === event.id) ? 'selected' : ''}`}
+          onClick={() => onToggle(sel.id, sel.odds, sel.name, event.id)}
         >
           <span className="odd-label">{sel.name}</span>
           <span className="odd-value">{sel.odds.toFixed(2)}</span>
