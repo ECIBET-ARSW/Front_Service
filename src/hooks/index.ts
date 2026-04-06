@@ -2,7 +2,7 @@ export { useApi } from './useApi';
 export { useWallet } from './useWallet';
 export { useWebSocket } from './useWebSocket';
 export { useRoulette } from './useRoulette';
-export { useRussianRoulette } from './useRussianRoulette';
+export { useLobby, useGameRoom } from './useRussianRoulette';
 export { useFiveLine } from './useFiveLine';
 export { usePoker } from './usePoker';
 export { useBetting } from './useBetting';
