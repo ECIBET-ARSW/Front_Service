@@ -5,12 +5,15 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 
+const API_GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL ?? 'http://localhost:8079';
+
 /** Shape of the values exposed by AuthContext. */
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  register: (firstName: string, lastName: string, birthDate: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateBalance: (newBalance: number) => void;
   isAuthenticated: boolean;
   isLoading: boolean; // True while checking localStorage on first render
 }
@@ -35,21 +38,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    * Simulates an API login call.
    * On success, stores the user in state and localStorage.
    */
-  const login = async (email: string, _password: string) => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // TODO: Replace with real API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const authRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      if (!authRes.ok) throw new Error('Login failed');
+      const authData = await authRes.json();
+      const token = authData.data.token;
 
-      const mockUser: User = {
-        id: '1',
-        username: email.split('@')[0],
-        email,
-        balance: 5000
+      const userRes = await fetch(`${API_GATEWAY_URL}/api/v1/users/email/${email}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!userRes.ok) throw new Error('Failed to fetch user');
+      const userData = await userRes.json();
+
+      const walletRes = await fetch(`${API_GATEWAY_URL}/api/v1/wallets/${userData.data.id}/balance`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const walletData = walletRes.ok ? await walletRes.json() : null;
+
+      const loggedUser: User = {
+        id: userData.data.id,
+        username: `${userData.data.firstName} ${userData.data.lastName}`,
+        email: userData.data.email,
+        balance: walletData?.data?.balance ?? 0
       };
-
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      setUser(loggedUser);
+      localStorage.setItem('user', JSON.stringify(loggedUser));
+      localStorage.setItem('token', token);
     } catch (error) {
       throw new Error('Login failed');
     } finally {
@@ -61,21 +81,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    * Simulates an API registration call.
    * New users start with a $1,000 balance.
    */
-  const register = async (username: string, email: string, _password: string) => {
+  const register = async (firstName: string, lastName: string, birthDate: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      // TODO: Replace with real API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const registerRes = await fetch(`${API_GATEWAY_URL}/api/v1/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firstName, lastName, birthDate, email, password })
+      });
+      if (!registerRes.ok) throw new Error('Registration failed');
 
-      const mockUser: User = {
-        id: Date.now().toString(),
-        username,
-        email,
-        balance: 1000
-      };
-
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      await login(email, password);
     } catch (error) {
       throw new Error('Registration failed');
     } finally {
@@ -83,10 +99,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateBalance = (newBalance: number) => {
+    if (!user) return;
+    const updated = { ...user, balance: newBalance };
+    setUser(updated);
+    localStorage.setItem('user', JSON.stringify(updated));
+  };
+
   /** Clears the user from state and localStorage, effectively logging out. */
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   return (
@@ -95,6 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       login,
       register,
       logout,
+      updateBalance,
       isAuthenticated: !!user,
       isLoading
     }}>
