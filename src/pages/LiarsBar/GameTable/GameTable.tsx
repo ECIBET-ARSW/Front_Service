@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
@@ -91,7 +91,7 @@ const GameTable = () => {
         if (event.revealedPlay?.loserPlayerId === user?.id) {
           setOverlay({
             type: 'shoot',
-            message: `Te atraparon. Debes jalar el gatillo.\n${event.revealedPlay.wasLying ? 'Estabas mintiendo.' : 'Dijiste la verdad pero te acusaron.'}`,
+            message: `Te atraparon. Debes jalar el gatillo.\n${event.revealedPlay?.wasLying ? 'Estabas mintiendo.' : 'Dijiste la verdad pero te acusaron.'}`,
           });
         } else {
           setOverlay({ type: 'info', message: event.message });
