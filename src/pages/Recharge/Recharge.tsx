@@ -7,7 +7,7 @@ import { RechargeMethod } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import './Recharge.css';
 
-const API_GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL ?? 'http://localhost:8079';
+const API_GATEWAY_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8082';
 
 const Recharge = () => {
   const { user, updateBalance } = useAuth();
