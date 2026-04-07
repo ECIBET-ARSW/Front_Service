@@ -80,34 +80,34 @@ export function useBetting(userId: string | undefined, updateBalance?: (balance:
   const fetchTodayEvents = useCallback(async () => {
     const token = localStorage.getItem('token');
     const data = await request(`${API_GATEWAY_URL}/api/v1/events/today`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 'Authorization': `Bearer ${token}`, 'X-User-Id': userId ?? '' }
     });
     if (data) setEvents((data as any[]).map(normalizeEvent));
-  }, [request]);
+  }, [request, userId]);
 
   const fetchLiveEvents = useCallback(async () => {
     const token = localStorage.getItem('token');
     const data = await request(`${API_GATEWAY_URL}/api/v1/events/live`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 'Authorization': `Bearer ${token}`, 'X-User-Id': userId ?? '' }
     });
     if (data) setLiveEvents((data as any[]).map(normalizeEvent));
-  }, [request]);
+  }, [request, userId]);
 
   const fetchEventsByDate = useCallback(async (date: string) => {
     const token = localStorage.getItem('token');
     const data = await request(`${API_GATEWAY_URL}/api/v1/events/by-date?date=${date}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 'Authorization': `Bearer ${token}`, 'X-User-Id': userId ?? '' }
     });
     if (data) setEvents((data as any[]).map(normalizeEvent));
-  }, [request]);
+  }, [request, userId]);
 
   const fetchMarkets = useCallback(async (eventId: string): Promise<Market[]> => {
     const token = localStorage.getItem('token');
     const data = await request(`${API_GATEWAY_URL}/api/v1/events/${eventId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 'Authorization': `Bearer ${token}`, 'X-User-Id': userId ?? '' }
     });
     return (data as any)?.markets ?? [];
-  }, [request]);
+  }, [request, userId]);
 
   const fetchSelections = useCallback(async (_marketId: string): Promise<Selection[]> => {
     return [];
@@ -117,7 +117,7 @@ export function useBetting(userId: string | undefined, updateBalance?: (balance:
     if (!userId) return;
     const token = localStorage.getItem('token');
     const data = await request(`${API_GATEWAY_URL}/api/v1/bets/user/${userId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 'Authorization': `Bearer ${token}`, 'X-User-Id': userId }
     });
     if (data) setMyBets((data as any[]).map(normalizeBet));
   }, [userId, request]);
@@ -126,7 +126,7 @@ export function useBetting(userId: string | undefined, updateBalance?: (balance:
     if (!userId) return;
     const token = localStorage.getItem('token');
     const data = await request(`${API_GATEWAY_URL}/api/v1/bets/user/${userId}/status/${status}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 'Authorization': `Bearer ${token}`, 'X-User-Id': userId }
     });
     if (data) setMyBets((data as any[]).map(normalizeBet));
   }, [userId, request]);
@@ -162,7 +162,8 @@ export function useBetting(userId: string | undefined, updateBalance?: (balance:
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        'X-User-Id': userId
       },
       body: JSON.stringify({ selectionId, stake, eventId }),
     });
