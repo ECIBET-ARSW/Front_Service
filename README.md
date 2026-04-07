@@ -497,6 +497,6 @@ http://localhost:5173
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
 
-*© 2026 ECIBET — Todos los derechos reservados*
+ *© 2026 ECIBET — Todos los derechos reservados*
 
 </div>
