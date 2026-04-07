@@ -34,7 +34,7 @@ const Auth = () => {
       }
       try {
         await login(formData.email, formData.password);
-        navigate('/');
+        navigate('/dashboard');
       } catch (err) {
         setError('Credenciales inválidas');
       }
@@ -54,7 +54,7 @@ const Auth = () => {
       }
       try {
         await register(formData.firstName, formData.lastName, formData.birthDate, formData.email, formData.password);
-        navigate('/');
+        navigate('/dashboard');
       } catch (err) {
         setError('Error al registrar usuario');
       }

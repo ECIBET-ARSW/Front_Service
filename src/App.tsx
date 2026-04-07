@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import Landing from './pages/Landing/Landing';
 import Home from './pages/Home/Home';
 import Recharge from './pages/Recharge/Recharge';
 import Games from './pages/Games/Games';
@@ -21,8 +22,9 @@ const AppRoutes = () => {
 
   const routes = (
     <Routes>
+      <Route path="/" element={<Landing />} />
       <Route path="/auth" element={<Auth />} />
-      <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
       <Route path="/sports" element={<ProtectedRoute><Sports /></ProtectedRoute>} />
       <Route path="/recharge" element={<ProtectedRoute><Recharge /></ProtectedRoute>} />
