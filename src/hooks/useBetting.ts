@@ -4,8 +4,9 @@ import { useApi } from './useApi';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
-const API_GATEWAY_URL = import.meta.env.VITE_AUTH_URL ?? 'http://localhost:8080';
-const BETTING_WS_URL = import.meta.env.VITE_BETTING_URL ?? 'http://localhost:8083';
+const API_GATEWAY_URL = import.meta.env.VITE_BETTING_URL ?? 'http://localhost:8083';
+const WALLETS_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8082';
+const BETTING_WS_URL = import.meta.env.VITE_BETTING_WS_URL ?? 'http://localhost:8083';
 
 export interface BettingEvent {
   id: string;
@@ -51,7 +52,7 @@ export interface PlacedBet {
   scoreDisplay?: string;
 }
 
-export function useBetting(userId: string | undefined, updateBalance?: (balance: number) => void, ) {
+export function useBetting(userId: string | undefined, updateBalance?: (balance: number) => void) {
 
   const normalizeEvent = (e: any): BettingEvent => ({
     ...e,
@@ -69,6 +70,7 @@ export function useBetting(userId: string | undefined, updateBalance?: (balance:
     matchDisplay: b.matchDisplay ?? undefined,
     scoreDisplay: b.scoreDisplay ?? undefined,
   });
+
   const [events, setEvents] = useState<BettingEvent[]>([]);
   const [liveEvents, setLiveEvents] = useState<BettingEvent[]>([]);
   const [myBets, setMyBets] = useState<PlacedBet[]>([]);
@@ -107,7 +109,7 @@ export function useBetting(userId: string | undefined, updateBalance?: (balance:
     return (data as any)?.markets ?? [];
   }, [request]);
 
-  const fetchSelections = useCallback(async (marketId: string): Promise<Selection[]> => {
+  const fetchSelections = useCallback(async (_marketId: string): Promise<Selection[]> => {
     return [];
   }, []);
 
@@ -145,10 +147,9 @@ export function useBetting(userId: string | undefined, updateBalance?: (balance:
     if (!userId) return false;
     const token = localStorage.getItem('token');
 
-    // Capturar balance actual ANTES de apostar
     let balanceBeforeBet: number | null = null;
     if (updateBalance) {
-      const walletRes = await fetch(`${API_GATEWAY_URL}/api/v1/wallets/${userId}/balance`, {
+      const walletRes = await fetch(`${WALLETS_URL}/api/v1/wallets/${userId}/balance`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (walletRes.ok) {
@@ -165,13 +166,13 @@ export function useBetting(userId: string | undefined, updateBalance?: (balance:
       },
       body: JSON.stringify({ selectionId, stake, eventId }),
     });
+
     if (result) {
       await fetchMyBets();
       if (updateBalance && balanceBeforeBet !== null) {
-        // Polling hasta que el balance cambie respecto al valor antes de apostar (max 5s)
         for (let i = 0; i < 10; i++) {
           await new Promise(resolve => setTimeout(resolve, 500));
-          const walletRes = await fetch(`${API_GATEWAY_URL}/api/v1/wallets/${userId}/balance`, {
+          const walletRes = await fetch(`${WALLETS_URL}/api/v1/wallets/${userId}/balance`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (walletRes.ok) {
@@ -216,7 +217,6 @@ export function useBetting(userId: string | undefined, updateBalance?: (balance:
   };
 }
 
-// Hook para recibir actualizaciones de cuotas en tiempo real via WebSocket
 export function useOddsWebSocket(eventIds: string[], onOddsUpdate: (eventId: string, data: any) => void) {
   const clientRef = useRef<Client | null>(null);
 
@@ -229,9 +229,7 @@ export function useOddsWebSocket(eventIds: string[], onOddsUpdate: (eventId: str
       onConnect: () => {
         eventIds.forEach(eventId => {
           client.subscribe(`/topic/odds/${eventId}`, msg => {
-            try {
-              onOddsUpdate(eventId, JSON.parse(msg.body));
-            } catch {}
+            try { onOddsUpdate(eventId, JSON.parse(msg.body)); } catch {}
           });
         });
       },
@@ -244,7 +242,6 @@ export function useOddsWebSocket(eventIds: string[], onOddsUpdate: (eventId: str
   }, [eventIds.join(',')]);
 }
 
-// Hook para recibir actualizaciones de partidos en tiempo real via WebSocket
 export function useLiveWebSocket(
   onEventUpdate: (data: any) => void,
   onScoreUpdate: (data: any) => void
