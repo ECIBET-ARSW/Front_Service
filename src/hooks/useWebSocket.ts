@@ -36,7 +36,7 @@ export function useWebSocket({ url, topic, onMessage, enabled = true, privateTop
     const token = localStorage.getItem('token');
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(url),
+      webSocketFactory: () => new SockJS(url, null, { transports: ['websocket'] }),
       connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
       reconnectDelay: 5000,
       onConnect: () => {
