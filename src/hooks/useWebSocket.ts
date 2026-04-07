@@ -4,7 +4,6 @@
 // Requires: npm install @stomp/stompjs sockjs-client @types/sockjs-client
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 
 interface UseWebSocketOptions {
   url: string;
@@ -36,7 +35,7 @@ export function useWebSocket({ url, topic, onMessage, enabled = true, privateTop
     const token = localStorage.getItem('token');
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(url, null, { transports: ['websocket'] }),
+      webSocketFactory: () => new WebSocket(url.replace('https://', 'wss://').replace('http://', 'ws://') + '/websocket'),
       connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
       reconnectDelay: 5000,
       onConnect: () => {
