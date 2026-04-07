@@ -5,7 +5,9 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 
-const API_GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL ?? 'http://localhost:8079';
+const API_GATEWAY_URL = import.meta.env.VITE_AUTH_URL ?? 'http://localhost:8080';
+const USERS_URL = import.meta.env.VITE_USERS_URL ?? 'http://localhost:8081';
+const WALLETS_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8082';
 
 /** Shape of the values exposed by AuthContext. */
 interface AuthContextType {
@@ -50,13 +52,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const authData = await authRes.json();
       const token = authData.data.token;
 
-      const userRes = await fetch(`${API_GATEWAY_URL}/api/v1/users/email/${email}`, {
+      const userRes = await fetch(`${USERS_URL}/api/v1/users/email/${email}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!userRes.ok) throw new Error('Failed to fetch user');
       const userData = await userRes.json();
 
-      const walletRes = await fetch(`${API_GATEWAY_URL}/api/v1/wallets/${userData.data.id}/balance`, {
+      const walletRes = await fetch(`${WALLETS_URL}/api/v1/wallets/${userData.data.id}/balance`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const walletData = walletRes.ok ? await walletRes.json() : null;
@@ -84,7 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const register = async (firstName: string, lastName: string, birthDate: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      const registerRes = await fetch(`${API_GATEWAY_URL}/api/v1/users`, {
+      const registerRes = await fetch(`${USERS_URL}/api/v1/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ firstName, lastName, birthDate, email, password })
