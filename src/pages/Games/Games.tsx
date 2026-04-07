@@ -1,6 +1,3 @@
-// Games catalog page.
-// Lists all four casino games as GameCard components and includes
-// a promotional banner linking to the Sports betting page.
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import GameCard from '../../components/GameCard/GameCard';
@@ -9,7 +6,6 @@ import './Games.css';
 
 const Games = () => {
   const navigate = useNavigate();
-  // Full catalog of casino games — all marked unavailable until implemented
   const games: Game[] = [
     {
       id: '1',
@@ -29,7 +25,7 @@ const Games = () => {
       maxPlayers: 6,
       image: '/img/Poker.jpg',
       gradient: '2',
-      available: false
+      available: true
     },
     {
       id: '3',
@@ -53,51 +49,28 @@ const Games = () => {
     }
   ];
 
+  const handleGameClick = (game: Game) => {
+    if (game.id === '2') navigate('/games/poker');
+    if (game.id === '3') navigate('/games/liars-bar');
+  };
+
   return (
-    <motion.div
-      className="games-page"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
+    <motion.div className="games-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
       <div className="games-header">
         <h1 className="games-title">Nuestros Juegos</h1>
-        <p className="games-description">
-          Explora nuestra colección de juegos emocionantes. Más juegos próximamente.
-        </p>
+        <p className="games-description">Explora nuestra colección de juegos emocionantes. Más juegos próximamente.</p>
       </div>
-
-      {/* Staggered entrance animation for each game card */}
       <div className="games-grid">
         {games.map((game, index) => (
-          <motion.div
-            key={game.id}
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
-          >
-            <GameCard
-              game={game}
-              onClick={game.id === '3' ? () => navigate('/games/liars-bar') : undefined}
-            />
+          <motion.div key={game.id} initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: index * 0.1 }}>
+            <GameCard game={game} onClick={game.available ? () => handleGameClick(game) : undefined} />
           </motion.div>
         ))}
       </div>
-
-      {/* Sports betting promotional banner */}
-      <motion.div
-        className="sports-section"
-        initial={{ opacity: 0, scale: 0.9 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-      >
+      <motion.div className="sports-section" initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
         <div className="sports-icon">APUESTAS DEPORTIVAS</div>
         <h2 className="sports-title">Apuestas Deportivas</h2>
-        <p className="sports-description">
-          Apuesta en tus deportes favoritos: fútbol, baloncesto,
-          tenis y mucho más. Cuotas competitivas y mercados variados.
-        </p>
+        <p className="sports-description">Apuesta en tus deportes favoritos: fútbol, baloncesto, tenis y mucho más.</p>
         <Link to="/sports" className="btn btn-primary">Ver Apuestas</Link>
       </motion.div>
     </motion.div>
