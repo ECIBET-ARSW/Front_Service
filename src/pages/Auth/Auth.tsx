@@ -2,14 +2,15 @@
 // Toggling between modes resets the form and clears any error messages.
 // On success, the user is redirected to the home page.
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import './Auth.css';
 
 const Auth = () => {
   // true = login mode, false = register mode
-  const [isLogin, setIsLogin] = useState(true);
+  const [searchParams] = useSearchParams();
+  const [isLogin, setIsLogin] = useState(searchParams.get('mode') !== 'register');
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',

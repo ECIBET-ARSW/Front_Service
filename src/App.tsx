@@ -18,7 +18,7 @@ const FULLSCREEN_ROUTES = ['/games/liars-bar/:roomId'];
 
 const AppRoutes = () => {
   const location = useLocation();
-  const isFullscreen = location.pathname.match(/^\/games\/liars-bar\/.+/);
+  const isFullscreen = location.pathname.match(/^\/games\/liars-bar\/.+/) || location.pathname === '/';
 
   const routes = (
     <Routes>
