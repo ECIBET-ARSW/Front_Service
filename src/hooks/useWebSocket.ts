@@ -4,7 +4,6 @@
 // Requires: npm install @stomp/stompjs sockjs-client @types/sockjs-client
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 
 interface UseWebSocketOptions {
   url: string;
