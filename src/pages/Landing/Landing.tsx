@@ -11,14 +11,14 @@ const stats = [
 
 const games = [
   {
-    name: 'Ruleta Rusa',
-    description: "Liar's Bar — Engaña, acusa y sobrevive. El último en pie gana el pozo.",
+    name: "Ruleta Rusa — Liar's Bar",
+    description: "Engaña, acusa y sobrevive. El último en pie gana el pozo.",
     image: '/img/Russian Roulette.jpg',
     tag: 'DISPONIBLE',
     tagClass: 'tag-live',
   },
   {
-    name: 'Poker Texas Hold\'em',
+    name: "Poker Texas Hold'em",
     description: 'Hasta 6 jugadores por mesa. Demuestra tu estrategia y llévate el pozo.',
     image: '/img/Poker.jpg',
     tag: 'PRÓXIMAMENTE',
@@ -42,7 +42,7 @@ const Landing = () => {
         <span className="landing-logo">ECIBET</span>
         <div className="landing-nav-actions">
           <Link to="/auth" className="landing-btn-outline">Iniciar Sesión</Link>
-          <Link to="/auth" className="landing-btn-solid">Registrarse</Link>
+          <Link to="/auth?mode=register" className="landing-btn-solid">Registrarse</Link>
         </div>
       </nav>
 
@@ -55,7 +55,7 @@ const Landing = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <span className="landing-badge">🎰 Casino Online #1</span>
+          <span className="landing-badge">♠ Casino Online</span>
           <h1 className="landing-title">
             Juega. Apuesta.<br />
             <span className="landing-title-gold">Gana en grande.</span>
@@ -65,26 +65,25 @@ const Landing = () => {
             apuestas deportivas y premios increíbles.
           </p>
           <div className="landing-hero-actions">
-            <Link to="/auth" className="landing-btn-solid landing-btn-lg">
+            <Link to="/auth?mode=register" className="landing-btn-solid landing-btn-lg">
               Comenzar ahora →
             </Link>
             <Link to="/auth" className="landing-btn-ghost">
-              Ver juegos
+              Iniciar Sesión
             </Link>
           </div>
         </motion.div>
 
-        {/* Floating cards decorativas */}
         <motion.div
           className="landing-hero-cards"
           initial={{ opacity: 0, x: 60 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
         >
-          <div className="hero-card hero-card-1">🂡</div>
-          <div className="hero-card hero-card-2">🎲</div>
-          <div className="hero-card hero-card-3">♠</div>
-          <div className="hero-card hero-card-4">🏆</div>
+          <div className="hero-card hero-card-1">♠</div>
+          <div className="hero-card hero-card-2">♦</div>
+          <div className="hero-card hero-card-3">♣</div>
+          <div className="hero-card hero-card-4">♥</div>
         </motion.div>
       </section>
 
@@ -142,10 +141,10 @@ const Landing = () => {
       {/* ── Features ── */}
       <section className="landing-features">
         {[
-          { icon: '🔒', title: 'Seguro y Confiable', desc: 'Transacciones cifradas y datos protegidos en todo momento.' },
-          { icon: '⚡', title: 'Tiempo Real', desc: 'Juegos multijugador en vivo con WebSocket para cero latencia.' },
-          { icon: '💰', title: 'Retiros Rápidos', desc: 'Gestiona tu saldo y retira tus ganancias fácilmente.' },
-          { icon: '🏆', title: 'Apuestas Deportivas', desc: 'Apuesta en tus partidos favoritos con las mejores cuotas.' },
+          { icon: '♜', title: 'Seguro y Confiable', desc: 'Transacciones cifradas y datos protegidos en todo momento.' },
+          { icon: '♞', title: 'Tiempo Real', desc: 'Juegos multijugador en vivo con WebSocket para cero latencia.' },
+          { icon: '♛', title: 'Retiros Rápidos', desc: 'Gestiona tu saldo y retira tus ganancias fácilmente.' },
+          { icon: '♟', title: 'Apuestas Deportivas', desc: 'Apuesta en tus partidos favoritos con las mejores cuotas.' },
         ].map((f, i) => (
           <motion.div
             key={f.title}
@@ -171,7 +170,7 @@ const Landing = () => {
         >
           <h2>¿Listo para jugar?</h2>
           <p>Crea tu cuenta gratis y empieza a ganar hoy mismo.</p>
-          <Link to="/auth" className="landing-btn-solid landing-btn-lg">
+          <Link to="/auth?mode=register" className="landing-btn-solid landing-btn-lg">
             Crear cuenta gratis
           </Link>
         </motion.div>
