@@ -3,18 +3,44 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { createLobby, getLobbies, joinLobby } from '../../services/poker/lobbyApi'
 
+const WALLETS_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8082'
+const MIN_BALANCE = 2000
+
 export default function PokerLobby() {
-  const { user } = useAuth()
-  const [screen, setScreen]       = useState('home')
-  const [lobbyName, setLobbyName] = useState('')
-  const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState('')
+  const { user, updateBalance } = useAuth()
+  const [screen, setScreen]           = useState('home')
+  const [lobbyName, setLobbyName]     = useState('')
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState('')
   const [availableLobbies, setAvailableLobbies] = useState<any[]>([])
+  const [realBalance, setRealBalance] = useState<number | null>(null)
   const navigate = useNavigate()
 
   const playerId   = user?.id || ''
   const playerName = user?.username?.split(' ')[0] || ''
-  const credits    = Math.floor(user?.balance || 10000)
+
+  useEffect(() => {
+    async function fetchBalance() {
+      if (!playerId) return
+      try {
+        const token = localStorage.getItem('token') ?? ''
+        const res = await fetch(`${WALLETS_URL}/api/v1/wallets/${playerId}/balance`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        const balance = Math.floor(data?.data?.balance ?? 0)
+        setRealBalance(balance)
+        updateBalance(balance)
+      } catch (_) {
+        setRealBalance(Math.floor(user?.balance ?? 0))
+      }
+    }
+    fetchBalance()
+  }, [playerId])
+
+  const credits = realBalance ?? Math.floor(user?.balance ?? 0)
+  const canPlay = credits >= MIN_BALANCE
 
   useEffect(() => {
     if (screen === 'join') {
@@ -34,7 +60,26 @@ export default function PokerLobby() {
 
   function goHome() { setScreen('home'); setError('') }
 
+  function handleGoToCreate() {
+    if (!canPlay) {
+      setError(`Necesitas mínimo $${MIN_BALANCE.toLocaleString()} COP para jugar`)
+      return
+    }
+    setError('')
+    setScreen('create')
+  }
+
+  function handleGoToJoin() {
+    if (!canPlay) {
+      setError(`Necesitas mínimo $${MIN_BALANCE.toLocaleString()} COP para jugar`)
+      return
+    }
+    setError('')
+    setScreen('join')
+  }
+
   async function handleCreate() {
+    if (!canPlay) return setError(`Necesitas mínimo $${MIN_BALANCE.toLocaleString()} COP para jugar`)
     setError(''); setLoading(true)
     try {
       const lobby = await createLobby({ playerId, playerName, credits })
@@ -47,6 +92,7 @@ export default function PokerLobby() {
   }
 
   async function handleJoin(selectedLobbyId?: string) {
+    if (!canPlay) return setError(`Necesitas mínimo $${MIN_BALANCE.toLocaleString()} COP para jugar`)
     const lid = selectedLobbyId || lobbyName.trim()
     if (!lid) return setError('Selecciona o escribe una sala')
     setError(''); setLoading(true)
@@ -76,13 +122,19 @@ export default function PokerLobby() {
         <div style={s.bottomBar}>
           <div style={s.creditsBox}>
             <div style={s.creditsLabel}>TUS CRÉDITOS</div>
-            <div style={s.creditsValue}>{credits.toLocaleString()}</div>
+            <div style={{ ...s.creditsValue, color: canPlay ? '#f0c040' : '#c0392b' }}>
+              {realBalance === null ? 'Cargando...' : `$${credits.toLocaleString()}`}
+            </div>
+            {!canPlay && realBalance !== null && (
+              <div style={s.minLabel}>Mín. $20.000 para jugar</div>
+            )}
             <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>{playerName}</div>
           </div>
           <div style={s.btnRow}>
-            <button style={s.btnCreate} onClick={() => setScreen('create')}>CREAR SALA</button>
-            <button style={s.btnJoin} onClick={() => setScreen('join')}>UNIRSE A SALA</button>
+            <button style={{ ...s.btnCreate, opacity: canPlay ? 1 : 0.5 }} onClick={handleGoToCreate}>CREAR SALA</button>
+            <button style={{ ...s.btnJoin,   opacity: canPlay ? 1 : 0.5 }} onClick={handleGoToJoin}>UNIRSE A SALA</button>
           </div>
+          {error && <div style={s.homeError}>{error}</div>}
           <button style={s.btnExit} onClick={() => navigate('/games')}>✕ VOLVER</button>
         </div>
       </div>
@@ -132,23 +184,25 @@ export default function PokerLobby() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page: { width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' },
-  bgImg: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 },
+  page:      { width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' },
+  bgImg:     { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 },
   bottomBar: { position: 'relative', zIndex: 2, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 20px', background: 'rgba(0,0,0,0.55)', gap: 12 },
-  creditsBox: { position: 'absolute', left: 20, display: 'flex', flexDirection: 'column' },
-  creditsLabel: { fontSize: 10, color: '#aaa', letterSpacing: 1, textTransform: 'uppercase' },
-  creditsValue: { fontSize: 18, fontWeight: 'bold', color: '#f0c040', letterSpacing: 1 },
-  btnRow: { display: 'flex', gap: 12 },
+  creditsBox:  { position: 'absolute', left: 20, display: 'flex', flexDirection: 'column' },
+  creditsLabel:{ fontSize: 10, color: '#aaa', letterSpacing: 1, textTransform: 'uppercase' },
+  creditsValue:{ fontSize: 18, fontWeight: 'bold', letterSpacing: 1 },
+  minLabel:    { fontSize: 9, color: '#c0392b', letterSpacing: 1, marginTop: 2, fontFamily: 'Courier New, monospace' },
+  homeError:   { position: 'absolute', bottom: 70, left: '50%', transform: 'translateX(-50%)', background: 'rgba(180,0,0,0.88)', color: '#fff', fontSize: 12, padding: '6px 16px', borderRadius: 4, whiteSpace: 'nowrap', fontFamily: 'Courier New, monospace' },
+  btnRow:    { display: 'flex', gap: 12 },
   btnCreate: { padding: '14px 36px', fontSize: 18, fontWeight: 'bold', letterSpacing: 2, borderRadius: 6, border: '3px solid #2ecc71', background: 'linear-gradient(180deg, #27ae60, #1a7a40)', color: '#fff', cursor: 'pointer', boxShadow: '0 3px 10px rgba(0,0,0,0.4)', minWidth: 200 },
   btnJoin:   { padding: '14px 36px', fontSize: 18, fontWeight: 'bold', letterSpacing: 2, borderRadius: 6, border: '3px solid #d4a017', background: 'linear-gradient(180deg, #d4a017, #9a7500)', color: '#fff', cursor: 'pointer', boxShadow: '0 3px 10px rgba(0,0,0,0.4)', minWidth: 200 },
   btnExit:   { position: 'absolute', right: 12, padding: '8px 16px', fontSize: 13, fontWeight: 'bold', letterSpacing: 1, borderRadius: 6, border: '2px solid #c0392b', background: 'linear-gradient(180deg, #e74c3c, #c0392b)', color: '#fff', cursor: 'pointer' },
-  overlayInput: { position: 'absolute', zIndex: 3, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 16, padding: '6px 10px', caretColor: '#f0c040' },
-  overlayBtn: { position: 'absolute', zIndex: 3, background: 'transparent', border: 'none', cursor: 'pointer' },
-  floatError: { position: 'absolute', top: '38%', left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: 'rgba(180,0,0,0.88)', color: '#fff', fontSize: 13, padding: '6px 16px', borderRadius: 4, whiteSpace: 'nowrap' },
-  lobbyList: { position: 'absolute', top: '72%', left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(240,192,64,0.3)', borderRadius: 8, padding: '10px', minWidth: 320, maxHeight: 200, overflowY: 'auto' },
+  overlayInput:   { position: 'absolute', zIndex: 3, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 16, padding: '6px 10px', caretColor: '#f0c040' },
+  overlayBtn:     { position: 'absolute', zIndex: 3, background: 'transparent', border: 'none', cursor: 'pointer' },
+  floatError:     { position: 'absolute', top: '38%', left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: 'rgba(180,0,0,0.88)', color: '#fff', fontSize: 13, padding: '6px 16px', borderRadius: 4, whiteSpace: 'nowrap' },
+  lobbyList:      { position: 'absolute', top: '72%', left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(240,192,64,0.3)', borderRadius: 8, padding: '10px', minWidth: 320, maxHeight: 200, overflowY: 'auto' },
   lobbyListTitle: { color: '#f0c040', fontFamily: '"Courier New", monospace', fontSize: 11, letterSpacing: 2, marginBottom: 8, textAlign: 'center' },
-  lobbyItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', borderRadius: 4, cursor: 'pointer', marginBottom: 4, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' },
-  lobbyCode: { fontFamily: '"Courier New", monospace', color: '#f0c040', fontWeight: 'bold', fontSize: 14, flex: 1 },
-  lobbyPlayers: { color: '#aaa', fontSize: 11, fontFamily: '"Courier New", monospace' },
-  lobbyJoinBtn: { padding: '4px 10px', fontSize: 11, fontWeight: 'bold', borderRadius: 4, border: '1px solid #27ae60', background: 'rgba(39,174,96,0.2)', color: '#7dda58', cursor: 'pointer', letterSpacing: 1 },
+  lobbyItem:      { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', borderRadius: 4, cursor: 'pointer', marginBottom: 4, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' },
+  lobbyCode:      { fontFamily: '"Courier New", monospace', color: '#f0c040', fontWeight: 'bold', fontSize: 14, flex: 1 },
+  lobbyPlayers:   { color: '#aaa', fontSize: 11, fontFamily: '"Courier New", monospace' },
+  lobbyJoinBtn:   { padding: '4px 10px', fontSize: 11, fontWeight: 'bold', borderRadius: 4, border: '1px solid #27ae60', background: 'rgba(39,174,96,0.2)', color: '#7dda58', cursor: 'pointer', letterSpacing: 1 },
 }

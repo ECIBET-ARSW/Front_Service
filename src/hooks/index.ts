@@ -4,7 +4,6 @@ export { useWebSocket } from './useWebSocket';
 export { useRoulette } from './useRoulette';
 export { useLobby, useGameRoom } from './useRussianRoulette';
 export { useFiveLine } from './useFiveLine';
-export { usePoker } from './usePoker';
 export { useBetting } from './useBetting';
 export { useNotification } from './useNotification';
 export { useAuth } from '../context/AuthContext';

@@ -2,24 +2,20 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import PokerTable from './PokerTable'
-import { connectSocket, sendPlayerAction, sendDeal, sendNextPhase, disconnectSocket } from '../../services/poker/socket'
+import { connectSocket, sendPlayerAction, sendDeal, disconnectSocket } from '../../services/poker/socket'
 import { startGame, leaveLobby, endGame } from '../../services/poker/lobbyApi'
 
 const POKER_BASE = import.meta.env.VITE_POKER_URL ?? 'http://localhost:8085'
 
-function pixelBtn(bg: string, color = '#fff'): React.CSSProperties {
-  return { flex: 1, padding: '14px 0', fontFamily: '"Courier New", monospace', fontWeight: 'bold', fontSize: 18, letterSpacing: 3, color, background: bg, border: '3px solid #000', borderBottom: '5px solid #000', borderRight: '4px solid #000', outline: 'none', cursor: 'pointer', textShadow: '1px 1px 0 rgba(0,0,0,0.6)', textTransform: 'uppercase', transition: 'filter 0.1s' }
-}
-
 export default function PokerGame() {
   const { user } = useAuth()
-  const [game, setGame]           = useState<any>(null)
-  const [connected, setConnected] = useState(false)
+  const [game, setGame]             = useState<any>(null)
+  const [connected, setConnected]   = useState(false)
   const [privateHand, setPrivateHand] = useState<any>(null)
-  const [raiseAmt, setRaiseAmt]   = useState(2000)
+  const [raiseAmt, setRaiseAmt]     = useState(2000)
   const [actionError, setActionError] = useState('')
-  const [loading, setLoading]     = useState(false)
-  const [showBet, setShowBet]     = useState(false)
+  const [loading, setLoading]       = useState(false)
+  const [showBet, setShowBet]       = useState(false)
   const handFetchedRef  = useRef(false)
   const winnerIdRef     = useRef<string | null>(null)
   const isRunningRef    = useRef(false)
@@ -27,10 +23,10 @@ export default function PokerGame() {
   const raiseAmtRef     = useRef(2000)
   const navigate        = useNavigate()
 
-  const gameId     = localStorage.getItem('pokerGameId') || ''
-  const lobbyId    = localStorage.getItem('pokerLobbyId') || ''
-  const playerId   = user?.id || ''
-  const personaje  = localStorage.getItem('pokerPersonaje') || '1Personaje.jpeg'
+  const gameId    = localStorage.getItem('pokerGameId') || ''
+  const lobbyId   = localStorage.getItem('pokerLobbyId') || ''
+  const playerId  = user?.id || ''
+  const personaje = localStorage.getItem('pokerPersonaje') || '1Personaje.jpeg'
 
   useEffect(() => { raiseAmtRef.current = raiseAmt }, [raiseAmt])
 
@@ -83,7 +79,7 @@ export default function PokerGame() {
       (handData) => { if (handData?.playerId === playerId) setPrivateHand(handData) }
     )
       .then(() => { setConnected(true); setTimeout(() => fetchGameState(), 500) })
-      .catch(() => setActionError('No se pudo conectar'))
+      .catch(() => setActionError('No se pudo conectar al servidor'))
 
     const pollInterval = setInterval(() => { if (!isRunningRef.current) fetchGameState() }, 3000)
     return () => { disconnectSocket(); setConnected(false); clearInterval(pollInterval) }
@@ -128,10 +124,6 @@ export default function PokerGame() {
     finally { setLoading(false) }
   }
 
-  function handleNextPhase() {
-    try { sendNextPhase(gameId) } catch (e: any) { setActionError(e.message) }
-  }
-
   async function handleContinue() {
     if (!lobbyId) return
     setLoading(true); setActionError('')
@@ -160,66 +152,110 @@ export default function PokerGame() {
     navigate('/games/poker')
   }
 
+  /* ── PANTALLA DE APUESTA ── */
   if (showBet) {
-    const currentGame = gameRef.current
-    const currentActualBetVal = currentGame?.actualBet || 0
-    const minBet = currentActualBetVal > 0 ? currentActualBetVal + 1 : 2000
+    const currentActualBetVal = gameRef.current?.actualBet || 0
+    const minBet   = currentActualBetVal > 0 ? currentActualBetVal + 1 : 2000
     const myCredit = currentPlayer?.credit || 0
     return (
       <div style={s.page}>
-        <div style={s.bgOverlay} />
-        <img src="/imagenesPoker/SeleccionoBet.jpeg" alt="apuesta" style={{ position:'fixed', inset:0, width:'100%', height:'100%', objectFit:'cover', zIndex:0, pointerEvents:'none' }} />
-        <div style={{ position:'fixed', top:'68%', left:'3%', zIndex:5, fontFamily:'"Courier New", monospace', fontSize:16, fontWeight:'bold', color:'#f0c040' }}>💰 {myCredit.toLocaleString()}</div>
-        <input type="number" value={raiseAmt} onChange={(e) => { const v = Number(e.target.value); setRaiseAmt(v); raiseAmtRef.current = v }} min={minBet} step={500}
-          style={{ position:'fixed', top:'68%', left:'36%', width:'28%', zIndex:5, background:'transparent', border:'none', outline:'none', fontFamily:'"Courier New", monospace', fontSize:20, fontWeight:'bold', color:'#222', textAlign:'center' }} />
-        <button style={{ position:'fixed', top:'79%', left:'36.1%', width:'27.8%', height:'9%', zIndex:5, background:'transparent', border:'none', cursor:'pointer' }} onClick={handleConfirmBet} />
-        <button style={{ position:'fixed', top:'93%', left:'36.1%', width:'27.8%', height:'9%', zIndex:5, background:'transparent', border:'none', cursor:'pointer' }} onClick={() => setShowBet(false)} />
+        <img src="/imagenesPoker/SeleccionoBet.jpeg" alt="apuesta"
+          style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, pointerEvents: 'none' }} />
+
+        {/* Créditos disponibles — más grande */}
+        <div style={{ position: 'fixed', top: '65%', left: '2%', zIndex: 5, fontFamily: 'Courier New, monospace', fontSize: 36, fontWeight: 'bold', color: '#f0a500', textShadow: '1px 1px 0 #000' }}>
+          💰 {myCredit.toLocaleString()}
+        </div>
+
+        {/* Input de cantidad — mucho más grande */}
+        <input type="number" value={raiseAmt}
+          onChange={(e) => { const v = Number(e.target.value); setRaiseAmt(v); raiseAmtRef.current = v }}
+          min={minBet} step={500}
+          style={{ position: 'fixed', top: '66%', left: '36%', width: '28%', zIndex: 5, background: 'transparent', border: 'none', outline: 'none', fontFamily: 'Courier New, monospace', fontSize: 56, fontWeight: 'bold', color: '#222', textAlign: 'center' }} />
+
+        <button style={{ position: 'fixed', top: '79%', left: '36.1%', width: '27.8%', height: '9%', zIndex: 5, background: 'transparent', border: 'none', cursor: 'pointer' }} onClick={handleConfirmBet} />
+        <button style={{ position: 'fixed', top: '93%', left: '36.1%', width: '27.8%', height: '9%', zIndex: 5, background: 'transparent', border: 'none', cursor: 'pointer' }} onClick={() => setShowBet(false)} />
       </div>
     )
   }
 
   return (
     <div style={s.page}>
-      <div style={s.bgOverlay} />
-      <img src={`/imagenesPoker/VistaPersonajes/${personaje}`} alt="mesa" style={{ position:'fixed', inset:0, width:'100%', height:'100%', objectFit:'cover', zIndex:0, pointerEvents:'none' }}
+      <img src={`/imagenesPoker/VistaPersonajes/${personaje}`} alt="mesa"
+        style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, pointerEvents: 'none' }}
         onError={(e: any) => { e.target.src = '/imagenesPoker/VistaPersonajes/1Personaje.jpeg' }} />
-      <button style={{ position:'fixed', bottom:18, right:20, zIndex:11, padding:'8px 18px', fontSize:13, fontWeight:'bold', letterSpacing:1, borderRadius:6, border:'2px solid #c0392b', background:'linear-gradient(180deg,#e74c3c,#c0392b)', color:'#fff', cursor:'pointer' }} onClick={handleExit}>SALIR</button>
+
+      <div style={{ position: 'fixed', inset: 0, background: 'radial-gradient(ellipse at 50% 0%, rgba(10,20,10,0.55) 0%, rgba(2,5,2,0.75) 100%)', zIndex: 0 }} />
 
       <div style={s.content}>
+
+        {/* Top bar */}
         <div style={s.topBar}>
-          <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
-            <span style={{ fontSize:10, color:'#555', textTransform:'uppercase', letterSpacing:2, fontFamily:'Cinzel, serif' }}>ID SALA</span>
-            <span style={{ fontSize:16, color:'#f0c040', fontFamily:'monospace', letterSpacing:3, fontWeight:'bold' }}>{lobbyId?.slice(-6).toUpperCase()}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span style={s.topBarLabel}>CÓDIGO MESA</span>
+            <span style={s.topBarValue}>{lobbyId?.slice(-6).toUpperCase()}</span>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-            <span style={{ width:7, height:7, borderRadius:'50%', display:'inline-block', background: connected ? '#7dda58' : '#ff6b6b' }} />
-            <span style={{ fontSize:12, color: connected ? '#7dda58' : '#ff6b6b' }}>{connected ? 'Conectado' : 'Desconectado'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', display: 'inline-block', background: connected ? '#27ae60' : '#c0392b', boxShadow: connected ? '0 0 6px #27ae60' : 'none' }} />
+            <span style={{ fontFamily: 'Courier New, monospace', fontSize: 10, color: connected ? '#27ae60' : '#c0392b', letterSpacing: 2 }}>
+              {connected ? 'CONECTADO' : 'DESCONECTADO'}
+            </span>
           </div>
+          <button style={s.exitBtn} onClick={handleExit}>SALIR</button>
         </div>
 
+        {/* Tabla de juego */}
         <div style={s.tableArea}>
           <PokerTable game={game} currentPlayer={currentPlayer} privateHand={privateHand} onContinue={handleContinue} />
         </div>
 
+        {/* Panel de acciones */}
         <div style={s.actionsPanel}>
+
           {!isRunning && !isFinished && (
             <div style={s.actionRow}>
-              <button style={s.btnHost} onClick={handleStartGame} disabled={loading || !connected}>
-                {loading ? 'Iniciando...' : '▶ INICIAR PARTIDA'}
+              <button style={{ ...s.btn, ...s.btnStart }} onClick={handleStartGame} disabled={loading || !connected}>
+                {loading ? 'INICIANDO...' : '▶  INICIAR PARTIDA'}
               </button>
             </div>
           )}
+
           {isRunning && !isShowdown && (
-            <div style={s.pixelBtnRow}>
-              <button style={{ ...pixelBtn('linear-gradient(180deg,#e74c3c,#a93226)'), opacity: (!isMyTurn || isFolded) ? 0.4 : 1 }} disabled={!isMyTurn || isFolded || !connected} onClick={handleOpenBet}>APOSTAR</button>
-              <button style={{ ...pixelBtn('linear-gradient(180deg,#2980b9,#1a5276)'), opacity: (!isMyTurn || isFolded) ? 0.4 : 1 }} disabled={!isMyTurn || isFolded || !connected} onClick={() => doAction('CALL', 0)}>IGUALAR</button>
-              <button style={{ ...pixelBtn('linear-gradient(180deg,#27ae60,#1a7040)'), opacity: (!isMyTurn || isFolded || hasActiveBet) ? 0.4 : 1 }} disabled={!isMyTurn || isFolded || !connected || hasActiveBet} onClick={() => doAction('CHECK', 0)}>PASAR</button>
-              <button style={{ ...pixelBtn('linear-gradient(180deg,#d4ac0d,#9a7d0a)', '#000'), opacity: (!isMyTurn || isFolded) ? 0.4 : 1 }} disabled={!isMyTurn || isFolded || !connected} onClick={() => doAction('FOLD', 0)}>RETIRARSE</button>
+            <div style={s.btnRow}>
+              <button
+                style={{ ...s.btn, ...s.btnRed, opacity: (!isMyTurn || isFolded) ? 0.3 : 1 }}
+                disabled={!isMyTurn || isFolded || !connected}
+                onClick={handleOpenBet}
+              >APOSTAR</button>
+
+              <button
+                style={{ ...s.btn, ...s.btnBlue, opacity: (!isMyTurn || isFolded) ? 0.3 : 1 }}
+                disabled={!isMyTurn || isFolded || !connected}
+                onClick={() => doAction('CALL', 0)}
+              >IGUALAR</button>
+
+              <button
+                style={{ ...s.btn, ...s.btnGreen, opacity: (!isMyTurn || isFolded || hasActiveBet) ? 0.3 : 1 }}
+                disabled={!isMyTurn || isFolded || !connected || hasActiveBet}
+                onClick={() => doAction('CHECK', 0)}
+              >PASAR</button>
+
+              <button
+                style={{ ...s.btn, ...s.btnGold, opacity: (!isMyTurn || isFolded) ? 0.3 : 1 }}
+                disabled={!isMyTurn || isFolded || !connected}
+                onClick={() => doAction('FOLD', 0)}
+              >RETIRARSE</button>
             </div>
           )}
-          {isRunning && isFolded && <div style={{ color:'#888', fontFamily:'Courier New, monospace', fontSize:13, textAlign:'center', padding:'4px 0' }}>Te retiraste — viendo la partida...</div>}
-          {isRunning && <div style={s.actionRow}><button style={s.btnPhase} onClick={handleNextPhase} disabled={!connected}>⏭ Siguiente fase</button></div>}
-          {actionError && <div style={s.errorMsg}>⚠ {actionError}</div>}
+
+          {isRunning && isFolded && (
+            <div style={s.foldedMsg}>te retiraste — observando la partida...</div>
+          )}
+
+          {actionError && (
+            <div style={s.errorMsg}>⚠  {actionError}</div>
+          )}
+
         </div>
       </div>
     </div>
@@ -227,15 +263,43 @@ export default function PokerGame() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page: { minHeight: '100vh', background: '#050e08', display: 'flex', flexDirection: 'column', position: 'relative' },
-  bgOverlay: { position: 'fixed', inset: 0, background: 'radial-gradient(ellipse at 50% 0%, #0a2e18 0%, #020705 80%)', zIndex: 0 },
+  page:    { minHeight: '100vh', background: '#050e08', display: 'flex', flexDirection: 'column', position: 'relative' },
   content: { position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' },
-  topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', position: 'sticky', top: 0, zIndex: 10 },
-  tableArea: { flex: 1, padding: '16px 20px', overflowY: 'auto' },
-  actionsPanel: { borderTop: '3px solid #000', background: '#111', padding: '0', display: 'flex', flexDirection: 'column', gap: 0, position: 'sticky', bottom: 0 },
-  pixelBtnRow: { display: 'flex', width: '100%' },
-  actionRow: { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: '8px 12px' },
-  btnHost:  { borderRadius: 6, padding: '10px 18px', fontSize: 13, fontFamily: 'Cinzel, serif', letterSpacing: 0.5, border: '1px solid', cursor: 'pointer', background: 'rgba(30,100,60,0.3)', color: '#7dda58', borderColor: 'rgba(125,218,88,0.2)' },
-  btnPhase: { borderRadius: 6, padding: '8px 16px', fontSize: 12, fontFamily: 'Cinzel, serif', letterSpacing: 0.5, border: '1px solid', cursor: 'pointer', background: 'rgba(80,80,200,0.15)', color: '#aab4ff', borderColor: 'rgba(150,150,255,0.3)' },
-  errorMsg: { color: '#ff8a8a', fontSize: 13, padding: '7px 12px', margin: '0 12px 8px', background: 'rgba(255,0,0,0.07)', borderRadius: 6, border: '1px solid rgba(255,100,100,0.2)' },
+
+  topBar:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid #0f0f0f', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', position: 'sticky', top: 0, zIndex: 10 },
+  topBarLabel: { fontFamily: 'Courier New, monospace', fontSize: 10, color: '#f0a500', letterSpacing: 3, textTransform: 'uppercase' },
+  topBarValue: { fontFamily: 'Courier New, monospace', fontSize: 16, color: '#fff', letterSpacing: 4, fontWeight: 'bold' },
+
+  exitBtn: { fontFamily: 'Courier New, monospace', fontSize: 10, fontWeight: 'bold', letterSpacing: 2, padding: '7px 16px', background: 'transparent', border: '1px solid #3a0a0a', color: '#c0392b', cursor: 'pointer', borderRadius: 2 },
+
+  tableArea:    { flex: 1, overflowY: 'auto' },
+  actionsPanel: { borderTop: '2px solid #0a0a0a', background: 'rgba(0,0,0,0.92)', display: 'flex', flexDirection: 'column', gap: 0, position: 'sticky', bottom: 0, backdropFilter: 'blur(4px)' },
+
+  actionRow: { display: 'flex', gap: 8, alignItems: 'center', padding: '10px 16px' },
+
+  btnRow: { display: 'flex', width: '100%', gap: 0 },
+
+  btn: {
+    fontFamily: 'Courier New, monospace',
+    fontWeight: 'bold',
+    fontSize: 22,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    padding: '42px 0',
+    flex: 1,
+    border: 'none',
+    borderRight: '1px solid rgba(0,0,0,0.4)',
+    cursor: 'pointer',
+    transition: 'filter 0.15s, opacity 0.2s',
+    borderRadius: 0,
+  },
+
+  btnRed:   { background: '#c0392b', color: '#fff' },
+  btnBlue:  { background: '#1a5276', color: '#aee6ff' },
+  btnGreen: { background: '#1a4a28', color: '#7dda58' },
+  btnGold:  { background: '#2e2400', color: '#f0a500', borderRight: 'none' },
+
+  btnStart:  { flex: 'none', padding: '10px 20px', background: 'transparent', border: '1px solid rgba(125,218,88,0.3)', color: '#7dda58', borderRadius: 2, fontSize: 12 },
+  foldedMsg: { fontFamily: 'Courier New, monospace', fontSize: 10, color: '#444', letterSpacing: 2, textAlign: 'center', padding: '8px', borderTop: '1px solid #111' },
+  errorMsg:  { fontFamily: 'Courier New, monospace', color: '#e74c3c', fontSize: 11, padding: '8px 16px', background: 'rgba(192,57,43,0.08)', borderTop: '1px solid rgba(192,57,43,0.2)' },
 }
