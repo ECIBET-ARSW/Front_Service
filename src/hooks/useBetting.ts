@@ -4,8 +4,8 @@ import { useApi } from './useApi';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
-const API_GATEWAY_URL = import.meta.env.VITE_BETTING_URL ?? 'http://localhost:8083';
-const WALLETS_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8082';
+const API_GATEWAY_URL = import.meta.env.VITE_BETTING_URL ?? 'http://localhost:8079';
+const WALLETS_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8079';
 const BETTING_WS_URL = import.meta.env.VITE_BETTING_WS_URL ?? 'http://localhost:8083';
 
 export interface BettingEvent {

@@ -6,8 +6,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { User } from '../types';
 
 const API_GATEWAY_URL = import.meta.env.VITE_AUTH_URL ?? 'http://localhost:8080';
-const USERS_URL = import.meta.env.VITE_USERS_URL ?? 'http://localhost:8081';
-const WALLETS_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8082';
+const USERS_URL = import.meta.env.VITE_USERS_URL ?? 'http://localhost:8079';
+const WALLETS_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8079';
 
 /** Shape of the values exposed by AuthContext. */
 interface AuthContextType {

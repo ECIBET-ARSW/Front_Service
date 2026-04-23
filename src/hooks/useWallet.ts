@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useApi } from './useApi';
 
-const WALLETS_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8082';
+const WALLETS_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8079';
 
 export interface Transaction {
   id: string;

@@ -1,10 +1,14 @@
-const POKER_BASE = import.meta.env.VITE_POKER_URL ?? 'http://localhost:8085'
+const POKER_BASE = import.meta.env.VITE_POKER_URL ?? 'http://localhost:8079'
 const BASE = `${POKER_BASE}/api/v1`
 
 async function req(method: string, path: string, body?: object) {
+  const token = localStorage.getItem('token') ?? ''
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
     body: body ? JSON.stringify(body) : undefined,
   })
   const json = await res.json().catch(() => ({}))

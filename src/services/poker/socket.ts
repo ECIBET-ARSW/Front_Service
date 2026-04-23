@@ -1,7 +1,7 @@
 import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
 
-const POKER_BASE = import.meta.env.VITE_POKER_URL ?? 'http://localhost:8085'
+const POKER_BASE = import.meta.env.VITE_POKER_WS_URL ?? 'http://localhost:8085'
 
 let stompClient: Client | null = null
 
