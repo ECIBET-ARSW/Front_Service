@@ -14,6 +14,7 @@ import GameTable from './pages/LiarsBar/GameTable/GameTable';
 import PokerLobby from './pages/Poker/PokerLobby';
 import PokerGame from './pages/Poker/PokerGame';
 import './App.css';
+import FiveInLineGame from './pages/FiveInLine/FiveInLineGame';
 
 // Rutas que NO usan el Layout (pantalla completa sin navbar)
 const FULLSCREEN_ROUTES = ['/games/liars-bar/:roomId', '/games/poker', '/games/poker/play'];
@@ -34,6 +35,7 @@ const AppRoutes = () => {
       <Route path="/sports" element={<ProtectedRoute><Sports /></ProtectedRoute>} />
       <Route path="/recharge" element={<ProtectedRoute><Recharge /></ProtectedRoute>} />
       <Route path="/games/liars-bar" element={<ProtectedRoute><Lobby /></ProtectedRoute>} />
+      <Route path="/5inline" element={<FiveInLineGame />} />
       <Route path="/games/liars-bar/:roomId" element={<ProtectedRoute><WaitingRoom /></ProtectedRoute>} />
       <Route path="/games/liars-bar/:roomId/play" element={<ProtectedRoute><GameTable /></ProtectedRoute>} />
       <Route path="/games/poker" element={<ProtectedRoute><PokerLobby /></ProtectedRoute>} />
