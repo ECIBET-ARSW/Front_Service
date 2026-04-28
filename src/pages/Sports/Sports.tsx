@@ -80,13 +80,13 @@ const Sports = () => {
       </div>
 
       <div className="sports-filters">
-        {(['today', 'live', 'mybets'] as const).map(tab => (
+        {(['today', 'mybets'] as const).map(tab => (
           <button
             key={tab}
             className={`filter-btn ${activeTab === tab ? 'active' : ''}`}
             onClick={() => setActiveTab(tab)}
           >
-            {tab === 'today' ? 'Hoy' : tab === 'live' ? 'En Vivo' : 'Mis Apuestas'}
+            {tab === 'today' ? 'Hoy' : 'Mis Apuestas'}
           </button>
         ))}
       </div>
