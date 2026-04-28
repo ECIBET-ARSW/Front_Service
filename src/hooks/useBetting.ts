@@ -80,7 +80,7 @@ export function useBetting(userId: string | undefined, updateBalance?: (balance:
   const fetchTodayEvents = useCallback(async () => {
     const token = localStorage.getItem('token');
     const data = await request(`${API_GATEWAY_URL}/api/v1/events/today`, {
-      headers: { 'Authorization': `Bearer ${token}`, 'x-User-Id': userId ?? '' }
+      headers: { 'Authorization': `Bearer ${token}`, 'X-User-Id': userId ?? '' }
     });
     if (data) setEvents((data as any[]).map(normalizeEvent));
   }, [request, userId]);
