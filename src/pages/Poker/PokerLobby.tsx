@@ -108,6 +108,7 @@ export default function PokerLobby() {
           POKER
         </motion.h1>
         <p style={s.subtitle}>Farolea, apuesta y gana el pozo</p>
+        <button style={s.btnBack} onClick={() => navigate('/games')}>← Volver</button>
       </div>
 
       {/* Balance */}
@@ -220,8 +221,9 @@ export default function PokerLobby() {
 }
 
 const s: Record<string, React.CSSProperties> = {
+  btnBack:     { position: 'absolute' as const, top: 0, right: 0, background: 'transparent', border: '1px solid #555', color: '#555', padding: '6px 14px', borderRadius: 2, cursor: 'pointer', fontFamily: "'Courier New', monospace", fontSize: '0.75rem', letterSpacing: 1 },
   page:        { minHeight: '100vh', padding: '40px 20px', background: '#0d0d1a', color: '#fff', fontFamily: "'Courier New', monospace" },
-  header:      { textAlign: 'center', marginBottom: 32 },
+  header:      { textAlign: 'center', marginBottom: 32, position: 'relative' as const },
   title:       { fontSize: '3rem', color: '#f0a500', letterSpacing: 8, textShadow: '4px 4px 0 #7a5200, 0 0 20px rgba(240,165,0,0.4)', margin: 0 },
   subtitle:    { color: '#888', fontSize: '0.9rem', letterSpacing: 3, textTransform: 'uppercase', marginTop: 8 },
   balanceBar:  { maxWidth: 600, margin: '0 auto 24px', background: '#16213e', border: '1px solid #2a2a4a', borderRadius: 4, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 16 },
