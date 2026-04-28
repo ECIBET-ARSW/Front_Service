@@ -183,22 +183,6 @@ export default function PokerLobby() {
             <motion.div style={s.modal} initial={{ scale: 0.85 }} animate={{ scale: 1 }} exit={{ scale: 0.85 }}
               onClick={(e: React.MouseEvent) => e.stopPropagation()}>
               <h3 style={s.modalTitle}>Salas Disponibles</h3>
-              <div style={s.field}>
-                <label style={s.label}>Créditos a llevar (mín. $2.000)</label>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                  {[5000, 10000, 25000, 50000].map(v => (
-                    <button key={v} style={{ ...s.btn, ...(buyIn === v ? s.btnConfirm : s.btnCancel), padding: '6px 0', flex: 1, fontSize: '0.7rem' }}
-                      onClick={() => setBuyIn(v)} disabled={v > credits}>
-                      {v.toLocaleString()}
-                    </button>
-                  ))}
-                </div>
-                <input style={s.input} type="number" value={buyIn} min={2000} max={credits}
-                  onChange={e => setBuyIn(Number(e.target.value))} />
-                <span style={{ fontSize: '0.7rem', color: '#888', marginTop: 4, display: 'block' }}>
-                  Disponible: ${credits.toLocaleString()} COP
-                </span>
-              </div>
               {availableLobbies.length === 0 ? (
                 <p style={s.empty}>No hay salas disponibles. ¡Crea una!</p>
               ) : (
