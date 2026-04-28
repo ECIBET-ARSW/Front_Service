@@ -13,7 +13,7 @@ export default function PokerLobby() {
 
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showJoinModal, setShowJoinModal]     = useState(false)
-  const [lobbyName, setLobbyName]             = useState('')
+  const [buyIn, setBuyIn]                     = useState(10000)
   const [loading, setLoading]                 = useState(false)
   const [error, setError]                     = useState('')
   const [availableLobbies, setAvailableLobbies] = useState<any[]>([])
@@ -64,9 +64,11 @@ export default function PokerLobby() {
 
   async function handleCreate() {
     if (!canPlay) return setError(`Necesitas mínimo $${MIN_BALANCE.toLocaleString()} COP para jugar`)
+    if (buyIn < 2000) return setError('El mínimo de créditos es $2.000 (big blind)')
+    if (buyIn > credits) return setError('No tienes suficientes créditos')
     setError(''); setLoading(true)
     try {
-      const lobby = await createLobby({ playerId, playerName, credits })
+      const lobby = await createLobby({ playerId, playerName, credits: buyIn })
       localStorage.setItem('pokerLobbyId',   lobby.id)
       localStorage.setItem('pokerGameId',    lobby.actualGame?.id || lobby.id)
       localStorage.setItem('pokerPersonaje', '1Personaje.jpeg')
@@ -77,6 +79,8 @@ export default function PokerLobby() {
 
   async function handleJoin(selectedLobbyId: string) {
     if (!canPlay) return setError(`Necesitas mínimo $${MIN_BALANCE.toLocaleString()} COP para jugar`)
+    if (buyIn < 2000) return setError('El mínimo de créditos es $2.000 (big blind)')
+    if (buyIn > credits) return setError('No tienes suficientes créditos')
     setError(''); setLoading(true)
     try {
       const lobbies = await getLobbies()
@@ -84,7 +88,7 @@ export default function PokerLobby() {
         l.id === selectedLobbyId || l.id.slice(-6).toLowerCase() === selectedLobbyId.toLowerCase()
       )
       if (!found) return setError('No se encontró esa sala')
-      const lobby = await joinLobby({ lobbyId: found.id, playerId, playerName, credits })
+      const lobby = await joinLobby({ lobbyId: found.id, playerId, playerName, credits: buyIn })
       localStorage.setItem('pokerLobbyId', lobby.id)
       localStorage.setItem('pokerGameId',  lobby.actualGame?.id || lobby.id)
       const players = lobby.actualGame?.players || []
@@ -144,8 +148,20 @@ export default function PokerLobby() {
                 <input style={s.input} value={playerName} readOnly />
               </div>
               <div style={s.field}>
-                <label style={s.label}>Créditos a llevar</label>
-                <input style={s.input} value={`$${credits.toLocaleString()} COP`} readOnly />
+                <label style={s.label}>Créditos a llevar (mín. $2.000)</label>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                  {[5000, 10000, 25000, 50000].map(v => (
+                    <button key={v} style={{ ...s.btn, ...(buyIn === v ? s.btnConfirm : s.btnCancel), padding: '6px 0', flex: 1, fontSize: '0.7rem' }}
+                      onClick={() => setBuyIn(v)} disabled={v > credits}>
+                      {v.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+                <input style={s.input} type="number" value={buyIn} min={2000} max={credits}
+                  onChange={e => setBuyIn(Number(e.target.value))} />
+                <span style={{ fontSize: '0.7rem', color: '#888', marginTop: 4, display: 'block' }}>
+                  Disponible: ${credits.toLocaleString()} COP
+                </span>
               </div>
               {error && <p style={s.modalError}>{error}</p>}
               <div style={s.modalActions}>
@@ -167,6 +183,22 @@ export default function PokerLobby() {
             <motion.div style={s.modal} initial={{ scale: 0.85 }} animate={{ scale: 1 }} exit={{ scale: 0.85 }}
               onClick={(e: React.MouseEvent) => e.stopPropagation()}>
               <h3 style={s.modalTitle}>Salas Disponibles</h3>
+              <div style={s.field}>
+                <label style={s.label}>Créditos a llevar (mín. $2.000)</label>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                  {[5000, 10000, 25000, 50000].map(v => (
+                    <button key={v} style={{ ...s.btn, ...(buyIn === v ? s.btnConfirm : s.btnCancel), padding: '6px 0', flex: 1, fontSize: '0.7rem' }}
+                      onClick={() => setBuyIn(v)} disabled={v > credits}>
+                      {v.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+                <input style={s.input} type="number" value={buyIn} min={2000} max={credits}
+                  onChange={e => setBuyIn(Number(e.target.value))} />
+                <span style={{ fontSize: '0.7rem', color: '#888', marginTop: 4, display: 'block' }}>
+                  Disponible: ${credits.toLocaleString()} COP
+                </span>
+              </div>
               {availableLobbies.length === 0 ? (
                 <p style={s.empty}>No hay salas disponibles. ¡Crea una!</p>
               ) : (
