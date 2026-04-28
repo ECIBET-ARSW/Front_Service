@@ -39,6 +39,28 @@ const Lobby = () => {
         <p className="lobby-subtitle">Engaña, acusa y sobrevive</p>
       </div>
 
+      <div className="lobby-how-to-play">
+        <h2 className="htp-title">¿Cómo se juega?</h2>
+        <div className="htp-steps">
+          <div className="htp-step">
+            <span className="htp-icon">🃏</span>
+            <div><strong>Juega cartas</strong><p>Cada turno debes jugar 1-3 cartas declarando que son la carta activa de la ronda (Rey, Reina o As). Puedes mentir.</p></div>
+          </div>
+          <div className="htp-step">
+            <span className="htp-icon">🔍</span>
+            <div><strong>Acusa</strong><p>Si crees que el jugador anterior mintió, acúsalo. Si tenías razón, él enfrenta el revólver. Si te equivocas, lo enfrentas tú.</p></div>
+          </div>
+          <div className="htp-step">
+            <span className="htp-icon">🔫</span>
+            <div><strong>Ruleta rusa</strong><p>El perdedor de la acusación jala el gatillo. El revólver tiene 6 cámaras — si sale la bala, quedas eliminado.</p></div>
+          </div>
+          <div className="htp-step">
+            <span className="htp-icon">🏆</span>
+            <div><strong>Gana el último</strong><p>El último jugador en pie se lleva todo el pozo acumulado de los buy-ins.</p></div>
+          </div>
+        </div>
+      </div>
+
       <div className="lobby-content">
         <div className="lobby-rooms-header">
           <h2>Salas disponibles</h2>

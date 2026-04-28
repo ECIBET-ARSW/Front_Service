@@ -28,6 +28,59 @@
   margin-top: 8px;
 }
 
+/* ── How to Play ────────────────────────────────────────────────── */
+.lobby-how-to-play {
+  max-width: 800px;
+  margin: 0 auto 40px;
+  background: #16213e;
+  border: 1px solid #2a2a4a;
+  border-radius: 4px;
+  padding: 24px 28px;
+}
+
+.htp-title {
+  color: #f0a500;
+  font-size: 0.8rem;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #2a2a4a;
+  padding-bottom: 10px;
+}
+
+.htp-steps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.htp-step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.htp-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.htp-step strong {
+  display: block;
+  color: #fff;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.htp-step p {
+  color: #888;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
 /* ── Rooms ──────────────────────────────────────────────────────── */
 .lobby-content {
   max-width: 800px;

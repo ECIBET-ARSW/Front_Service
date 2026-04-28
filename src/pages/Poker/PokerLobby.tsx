@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
 import { createLobby, getLobbies, joinLobby } from '../../services/poker/lobbyApi'
 
-const WALLETS_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8082'
+const WALLETS_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8079'
 const MIN_BALANCE = 2000
 
 export default function PokerLobby() {
   const { user, updateBalance } = useAuth()
-  const [screen, setScreen]           = useState('home')
-  const [lobbyName, setLobbyName]     = useState('')
-  const [loading, setLoading]         = useState(false)
-  const [error, setError]             = useState('')
-  const [availableLobbies, setAvailableLobbies] = useState<any[]>([])
-  const [realBalance, setRealBalance] = useState<number | null>(null)
   const navigate = useNavigate()
+
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showJoinModal, setShowJoinModal]     = useState(false)
+  const [lobbyName, setLobbyName]             = useState('')
+  const [loading, setLoading]                 = useState(false)
+  const [error, setError]                     = useState('')
+  const [availableLobbies, setAvailableLobbies] = useState<any[]>([])
+  const [realBalance, setRealBalance]         = useState<number | null>(null)
 
   const playerId   = user?.id || ''
   const playerName = user?.username?.split(' ')[0] || ''
@@ -39,44 +42,25 @@ export default function PokerLobby() {
     fetchBalance()
   }, [playerId])
 
-  const credits = realBalance ?? Math.floor(user?.balance ?? 0)
-  const canPlay = credits >= MIN_BALANCE
-
   useEffect(() => {
-    if (screen === 'join') {
-      loadLobbies()
-      const interval = setInterval(loadLobbies, 3000)
-      return () => clearInterval(interval)
-    }
-  }, [screen])
+    if (!showJoinModal) return
+    loadLobbies()
+    const interval = setInterval(loadLobbies, 3000)
+    return () => clearInterval(interval)
+  }, [showJoinModal])
 
   async function loadLobbies() {
     try {
       const lobbies = await getLobbies()
-      const open = lobbies.filter((l: any) => !l.actualGame?.inGame && (l.actualGame?.players?.filter((p: any) => p.inLobby)?.length || 0) > 0)
+      const open = lobbies.filter((l: any) =>
+        !l.actualGame?.inGame && (l.actualGame?.players?.filter((p: any) => p.inLobby)?.length || 0) > 0
+      )
       setAvailableLobbies(open)
-    } catch(_) {}
+    } catch (_) {}
   }
 
-  function goHome() { setScreen('home'); setError('') }
-
-  function handleGoToCreate() {
-    if (!canPlay) {
-      setError(`Necesitas mínimo $${MIN_BALANCE.toLocaleString()} COP para jugar`)
-      return
-    }
-    setError('')
-    setScreen('create')
-  }
-
-  function handleGoToJoin() {
-    if (!canPlay) {
-      setError(`Necesitas mínimo $${MIN_BALANCE.toLocaleString()} COP para jugar`)
-      return
-    }
-    setError('')
-    setScreen('join')
-  }
+  const credits  = realBalance ?? Math.floor(user?.balance ?? 0)
+  const canPlay  = credits >= MIN_BALANCE
 
   async function handleCreate() {
     if (!canPlay) return setError(`Necesitas mínimo $${MIN_BALANCE.toLocaleString()} COP para jugar`)
@@ -91,118 +75,164 @@ export default function PokerLobby() {
     finally { setLoading(false) }
   }
 
-  async function handleJoin(selectedLobbyId?: string) {
+  async function handleJoin(selectedLobbyId: string) {
     if (!canPlay) return setError(`Necesitas mínimo $${MIN_BALANCE.toLocaleString()} COP para jugar`)
-    const lid = selectedLobbyId || lobbyName.trim()
-    if (!lid) return setError('Selecciona o escribe una sala')
     setError(''); setLoading(true)
     try {
       const lobbies = await getLobbies()
       const found = lobbies.find((l: any) =>
-        l.id === lid || l.id.slice(-6).toLowerCase() === lid.toLowerCase()
+        l.id === selectedLobbyId || l.id.slice(-6).toLowerCase() === selectedLobbyId.toLowerCase()
       )
       if (!found) return setError('No se encontró esa sala')
       const lobby = await joinLobby({ lobbyId: found.id, playerId, playerName, credits })
-      localStorage.setItem('pokerLobbyId',   lobby.id)
-      localStorage.setItem('pokerGameId',    lobby.actualGame?.id || lobby.id)
+      localStorage.setItem('pokerLobbyId', lobby.id)
+      localStorage.setItem('pokerGameId',  lobby.actualGame?.id || lobby.id)
       const players = lobby.actualGame?.players || []
-      const activePlayers = players.filter((p: any) => p.inLobby)
-      const myActiveIndex = activePlayers.findIndex((p: any) => p.id === playerId)
-      const num = myActiveIndex >= 0 ? myActiveIndex + 1 : activePlayers.length
-      localStorage.setItem('pokerPersonaje', `${Math.min(num, 6)}Personaje.jpeg`)
+      const active  = players.filter((p: any) => p.inLobby)
+      const idx     = active.findIndex((p: any) => p.id === playerId)
+      localStorage.setItem('pokerPersonaje', `${Math.min(idx >= 0 ? idx + 1 : active.length, 6)}Personaje.jpeg`)
       navigate('/games/poker/play')
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
   }
 
-  if (screen === 'home') {
-    return (
-      <div style={s.page}>
-        <img src="/imagenesPoker/InicioLobby.jpeg" alt="poker" style={s.bgImg} />
-        <div style={s.bottomBar}>
-          <div style={s.creditsBox}>
-            <div style={s.creditsLabel}>TUS CRÉDITOS</div>
-            <div style={{ ...s.creditsValue, color: canPlay ? '#f0c040' : '#c0392b' }}>
-              {realBalance === null ? 'Cargando...' : `$${credits.toLocaleString()}`}
-            </div>
-            {!canPlay && realBalance !== null && (
-              <div style={s.minLabel}>Mín. $20.000 para jugar</div>
-            )}
-            <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>{playerName}</div>
-          </div>
-          <div style={s.btnRow}>
-            <button style={{ ...s.btnCreate, opacity: canPlay ? 1 : 0.5 }} onClick={handleGoToCreate}>CREAR SALA</button>
-            <button style={{ ...s.btnJoin,   opacity: canPlay ? 1 : 0.5 }} onClick={handleGoToJoin}>UNIRSE A SALA</button>
-          </div>
-          {error && <div style={s.homeError}>{error}</div>}
-          <button style={s.btnExit} onClick={() => navigate('/games')}>✕ VOLVER</button>
-        </div>
+  return (
+    <div style={s.page}>
+      {/* Header */}
+      <div style={s.header}>
+        <motion.h1 style={s.title} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+          POKER
+        </motion.h1>
+        <p style={s.subtitle}>Farolea, apuesta y gana el pozo</p>
       </div>
-    )
-  }
 
-  if (screen === 'create') {
-    return (
-      <div style={s.page}>
-        <img src="/imagenesPoker/NuevoLobby.jpeg" alt="nuevo lobby" style={s.bgImg} />
-        <input style={{ ...s.overlayInput, top: '47.5%', left: '50%', width: '19%' }} value={lobbyName} onChange={(e) => setLobbyName(e.target.value)} maxLength={30} />
-        <input style={{ ...s.overlayInput, top: '57%', left: '50%', width: '19%' }} value={playerName} readOnly maxLength={20} />
-        {error && <div style={s.floatError}>{error}</div>}
-        <button style={{ ...s.overlayBtn, top: '65%', left: '33%', width: '17%', height: '10%' }} onClick={handleCreate} disabled={loading} />
-        <button style={{ ...s.overlayBtn, top: '65%', left: '53.5%', width: '14%', height: '10%' }} onClick={goHome} />
+      {/* Balance */}
+      <div style={s.balanceBar}>
+        <span style={s.balanceLabel}>TUS CRÉDITOS</span>
+        <span style={{ ...s.balanceValue, color: canPlay ? '#f0a500' : '#c0392b' }}>
+          {realBalance === null ? 'Cargando...' : `$${credits.toLocaleString()} COP`}
+        </span>
+        {!canPlay && realBalance !== null && (
+          <span style={s.balanceWarn}>Mínimo ${MIN_BALANCE.toLocaleString()} para jugar</span>
+        )}
       </div>
-    )
-  }
 
-  if (screen === 'join') {
-    return (
-      <div style={s.page}>
-        <img src="/imagenesPoker/UnirseLobby.jpeg" alt="unirse" style={s.bgImg} />
-        <input style={{ ...s.overlayInput, top: '47.5%', left: '50%', width: '19%' }} value={lobbyName} onChange={(e) => setLobbyName(e.target.value)} placeholder="ID de la sala" maxLength={40} autoFocus />
-        <input style={{ ...s.overlayInput, top: '57%', left: '50%', width: '19%' }} value={playerName} readOnly />
-        {error && <div style={s.floatError}>{error}</div>}
-        <div style={s.lobbyList}>
-          <div style={s.lobbyListTitle}>SALAS DISPONIBLES</div>
-          {availableLobbies.length === 0 && (
-            <div style={{ color: '#888', fontSize: 12, textAlign: 'center', fontFamily: 'Courier New, monospace' }}>No hay salas disponibles</div>
-          )}
-          {availableLobbies.map((l: any) => (
-            <div key={l.id} style={s.lobbyItem} onClick={() => setLobbyName(l.id.slice(-6).toUpperCase())}>
-              <span style={s.lobbyCode}>#{l.id.slice(-6).toUpperCase()}</span>
-              <span style={s.lobbyPlayers}>{l.actualGame?.players?.filter((p: any) => p.inLobby)?.length || 0}/6 jugadores</span>
-              <button style={s.lobbyJoinBtn} onClick={(e) => { e.stopPropagation(); handleJoin(l.id) }}>UNIRSE</button>
-            </div>
-          ))}
-        </div>
-        <button style={{ ...s.overlayBtn, top: '65%', left: '33%', width: '17%', height: '10%' }} onClick={() => handleJoin()} disabled={loading} />
-        <button style={{ ...s.overlayBtn, top: '65%', left: '53.5%', width: '14%', height: '10%' }} onClick={goHome} />
+      {error && <div style={s.errorBar}>{error}</div>}
+
+      {/* Actions */}
+      <div style={s.actions}>
+        <motion.button style={{ ...s.btn, ...s.btnCreate }} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+          onClick={() => { setError(''); setShowCreateModal(true) }}>
+          + Crear Sala
+        </motion.button>
+        <motion.button style={{ ...s.btn, ...s.btnJoin }} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+          onClick={() => { setError(''); setShowJoinModal(true) }}>
+          Unirse a Sala
+        </motion.button>
       </div>
-    )
-  }
 
-  return null
+      {/* Modal Crear */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <motion.div style={s.overlay} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowCreateModal(false)}>
+            <motion.div style={s.modal} initial={{ scale: 0.85 }} animate={{ scale: 1 }} exit={{ scale: 0.85 }}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+              <h3 style={s.modalTitle}>Crear Sala</h3>
+              <div style={s.field}>
+                <label style={s.label}>Jugador</label>
+                <input style={s.input} value={playerName} readOnly />
+              </div>
+              <div style={s.field}>
+                <label style={s.label}>Créditos a llevar</label>
+                <input style={s.input} value={`$${credits.toLocaleString()} COP`} readOnly />
+              </div>
+              {error && <p style={s.modalError}>{error}</p>}
+              <div style={s.modalActions}>
+                <button style={{ ...s.btn, ...s.btnCancel }} onClick={() => setShowCreateModal(false)}>Cancelar</button>
+                <button style={{ ...s.btn, ...s.btnConfirm }} onClick={handleCreate} disabled={loading || !canPlay}>
+                  {loading ? 'Creando...' : 'Crear'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Unirse */}
+      <AnimatePresence>
+        {showJoinModal && (
+          <motion.div style={s.overlay} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowJoinModal(false)}>
+            <motion.div style={s.modal} initial={{ scale: 0.85 }} animate={{ scale: 1 }} exit={{ scale: 0.85 }}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+              <h3 style={s.modalTitle}>Salas Disponibles</h3>
+              {availableLobbies.length === 0 ? (
+                <p style={s.empty}>No hay salas disponibles. ¡Crea una!</p>
+              ) : (
+                <div style={s.roomList}>
+                  {availableLobbies.map((l: any) => {
+                    const activePlayers = l.actualGame?.players?.filter((p: any) => p.inLobby) ?? []
+                    return (
+                      <motion.div key={l.id} style={s.roomCard} whileHover={{ borderColor: '#f0a500' }}
+                        onClick={() => handleJoin(l.id)}>
+                        <div>
+                          <span style={s.roomCode}>#{l.id.slice(-6).toUpperCase()}</span>
+                          <span style={s.roomPlayers}>{activePlayers.length}/6 jugadores</span>
+                          <div style={s.roomChips}>
+                            {activePlayers.map((p: any) => (
+                              <span key={p.id} style={s.chip}>{p.name}</span>
+                            ))}
+                          </div>
+                        </div>
+                        <button style={{ ...s.btn, ...s.btnJoinSmall }}>Unirse</button>
+                      </motion.div>
+                    )
+                  })}
+                </div>
+              )}
+              {error && <p style={s.modalError}>{error}</p>}
+              <button style={{ ...s.btn, ...s.btnCancel, marginTop: 16 }} onClick={() => setShowJoinModal(false)}>
+                Cerrar
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page:      { width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' },
-  bgImg:     { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 },
-  bottomBar: { position: 'relative', zIndex: 2, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 20px', background: 'rgba(0,0,0,0.55)', gap: 12 },
-  creditsBox:  { position: 'absolute', left: 20, display: 'flex', flexDirection: 'column' },
-  creditsLabel:{ fontSize: 10, color: '#aaa', letterSpacing: 1, textTransform: 'uppercase' },
-  creditsValue:{ fontSize: 18, fontWeight: 'bold', letterSpacing: 1 },
-  minLabel:    { fontSize: 9, color: '#c0392b', letterSpacing: 1, marginTop: 2, fontFamily: 'Courier New, monospace' },
-  homeError:   { position: 'absolute', bottom: 70, left: '50%', transform: 'translateX(-50%)', background: 'rgba(180,0,0,0.88)', color: '#fff', fontSize: 12, padding: '6px 16px', borderRadius: 4, whiteSpace: 'nowrap', fontFamily: 'Courier New, monospace' },
-  btnRow:    { display: 'flex', gap: 12 },
-  btnCreate: { padding: '14px 36px', fontSize: 18, fontWeight: 'bold', letterSpacing: 2, borderRadius: 6, border: '3px solid #2ecc71', background: 'linear-gradient(180deg, #27ae60, #1a7a40)', color: '#fff', cursor: 'pointer', boxShadow: '0 3px 10px rgba(0,0,0,0.4)', minWidth: 200 },
-  btnJoin:   { padding: '14px 36px', fontSize: 18, fontWeight: 'bold', letterSpacing: 2, borderRadius: 6, border: '3px solid #d4a017', background: 'linear-gradient(180deg, #d4a017, #9a7500)', color: '#fff', cursor: 'pointer', boxShadow: '0 3px 10px rgba(0,0,0,0.4)', minWidth: 200 },
-  btnExit:   { position: 'absolute', right: 12, padding: '8px 16px', fontSize: 13, fontWeight: 'bold', letterSpacing: 1, borderRadius: 6, border: '2px solid #c0392b', background: 'linear-gradient(180deg, #e74c3c, #c0392b)', color: '#fff', cursor: 'pointer' },
-  overlayInput:   { position: 'absolute', zIndex: 3, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 16, padding: '6px 10px', caretColor: '#f0c040' },
-  overlayBtn:     { position: 'absolute', zIndex: 3, background: 'transparent', border: 'none', cursor: 'pointer' },
-  floatError:     { position: 'absolute', top: '38%', left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: 'rgba(180,0,0,0.88)', color: '#fff', fontSize: 13, padding: '6px 16px', borderRadius: 4, whiteSpace: 'nowrap' },
-  lobbyList:      { position: 'absolute', top: '72%', left: '50%', transform: 'translateX(-50%)', zIndex: 5, background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(240,192,64,0.3)', borderRadius: 8, padding: '10px', minWidth: 320, maxHeight: 200, overflowY: 'auto' },
-  lobbyListTitle: { color: '#f0c040', fontFamily: '"Courier New", monospace', fontSize: 11, letterSpacing: 2, marginBottom: 8, textAlign: 'center' },
-  lobbyItem:      { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', borderRadius: 4, cursor: 'pointer', marginBottom: 4, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' },
-  lobbyCode:      { fontFamily: '"Courier New", monospace', color: '#f0c040', fontWeight: 'bold', fontSize: 14, flex: 1 },
-  lobbyPlayers:   { color: '#aaa', fontSize: 11, fontFamily: '"Courier New", monospace' },
-  lobbyJoinBtn:   { padding: '4px 10px', fontSize: 11, fontWeight: 'bold', borderRadius: 4, border: '1px solid #27ae60', background: 'rgba(39,174,96,0.2)', color: '#7dda58', cursor: 'pointer', letterSpacing: 1 },
+  page:        { minHeight: '100vh', padding: '40px 20px', background: '#0d0d1a', color: '#fff', fontFamily: "'Courier New', monospace" },
+  header:      { textAlign: 'center', marginBottom: 32 },
+  title:       { fontSize: '3rem', color: '#f0a500', letterSpacing: 8, textShadow: '4px 4px 0 #7a5200, 0 0 20px rgba(240,165,0,0.4)', margin: 0 },
+  subtitle:    { color: '#888', fontSize: '0.9rem', letterSpacing: 3, textTransform: 'uppercase', marginTop: 8 },
+  balanceBar:  { maxWidth: 600, margin: '0 auto 24px', background: '#16213e', border: '1px solid #2a2a4a', borderRadius: 4, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 16 },
+  balanceLabel:{ fontSize: '0.7rem', color: '#888', letterSpacing: 2, textTransform: 'uppercase' },
+  balanceValue:{ fontSize: '1.1rem', fontWeight: 'bold', letterSpacing: 1 },
+  balanceWarn: { fontSize: '0.7rem', color: '#c0392b', letterSpacing: 1 },
+  errorBar:    { maxWidth: 600, margin: '0 auto 16px', background: 'rgba(180,0,0,0.2)', border: '1px solid #c0392b', borderRadius: 4, padding: '10px 16px', color: '#e74c3c', fontSize: '0.8rem', textAlign: 'center' },
+  actions:     { maxWidth: 600, margin: '0 auto', display: 'flex', gap: 12 },
+  btn:         { fontFamily: "'Courier New', monospace", fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: 2, padding: '12px 24px', borderRadius: 2, cursor: 'pointer', border: 'none', transition: 'all 0.2s' },
+  btnCreate:   { flex: 1, background: '#f0a500', color: '#000' },
+  btnJoin:     { flex: 1, background: 'transparent', color: '#f0a500', border: '2px solid #f0a500' },
+  btnCancel:   { flex: 1, background: 'transparent', color: '#555', border: '1px solid #555' },
+  btnConfirm:  { flex: 1, background: '#f0a500', color: '#000' },
+  btnJoinSmall:{ background: 'transparent', color: '#f0a500', border: '1px solid #f0a500', padding: '6px 14px', fontSize: '0.7rem' },
+  overlay:     { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
+  modal:       { background: '#16213e', border: '2px solid #f0a500', borderRadius: 4, padding: 32, width: '100%', maxWidth: 460 },
+  modalTitle:  { color: '#f0a500', letterSpacing: 4, textTransform: 'uppercase', marginBottom: 24, fontSize: '1rem' },
+  field:       { marginBottom: 16 },
+  label:       { display: 'block', fontSize: '0.7rem', color: '#888', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
+  input:       { width: '100%', background: '#0d0d1a', border: '1px solid #2a2a4a', color: '#fff', padding: '10px 12px', fontFamily: "'Courier New', monospace", fontSize: '0.9rem', borderRadius: 2, boxSizing: 'border-box' as const },
+  modalActions:{ display: 'flex', gap: 12, marginTop: 24 },
+  modalError:  { color: '#e74c3c', fontSize: '0.75rem', marginTop: 8 },
+  empty:       { color: '#555', fontSize: '0.85rem', letterSpacing: 2, textAlign: 'center', padding: '24px 0' },
+  roomList:    { display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 300, overflowY: 'auto', marginBottom: 8 },
+  roomCard:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0d0d1a', border: '1px solid #2a2a4a', borderRadius: 2, padding: '12px 16px', cursor: 'pointer', transition: 'border-color 0.2s' },
+  roomCode:    { display: 'block', color: '#f0a500', fontWeight: 'bold', fontSize: '0.9rem', letterSpacing: 2, marginBottom: 4 },
+  roomPlayers: { display: 'block', color: '#888', fontSize: '0.7rem', letterSpacing: 1, marginBottom: 6 },
+  roomChips:   { display: 'flex', gap: 4, flexWrap: 'wrap' as const },
+  chip:        { background: '#0f3460', border: '1px solid #2a4a8a', borderRadius: 2, padding: '2px 8px', fontSize: '0.65rem', color: '#aaa' },
 }
