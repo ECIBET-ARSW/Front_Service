@@ -20,12 +20,12 @@ const Games = () => {
     {
       id: '2',
       name: 'Poker Texas Hold\'em',
-      description: 'Poker clásico con hasta 6 jugadores por mesa. Demuestra tu estrategia',
+      description: 'Próximamente — Poker clásico con hasta 6 jugadores por mesa.',
       minBet: 50,
       maxPlayers: 6,
       image: '/img/Poker.jpg',
       gradient: '2',
-      available: true
+      available: false
     },
     {
       id: '3',
