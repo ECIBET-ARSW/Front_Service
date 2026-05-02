@@ -1,11 +1,10 @@
 import React from 'react';
-import { useSpriteLoader } from '../hooks/useSpriteLoader';
-import { RunnerColor } from '../config/sprites.config';
+import { useSpriteLoader } from '../../../games/FiveInLine/hooks/useSpriteLoader';
 
 interface PlayerHUD {
     id: string;
     name: string;
-    color: RunnerColor;
+    color: string;
     lives: number;
     distance: number;
     maxDistance: number;
@@ -16,14 +15,12 @@ interface GameHUDProps {
     players: PlayerHUD[];
     currentPlayerId: string;
     gameTime: number;
-    worldRecord?: number;
 }
 
 export const GameHUD: React.FC<GameHUDProps> = ({
                                                     players,
                                                     currentPlayerId,
-                                                    gameTime,
-                                                    worldRecord
+                                                    gameTime
                                                 }) => {
     const { getSprite } = useSpriteLoader();
     const currentPlayer = players.find(p => p.id === currentPlayerId);
@@ -34,15 +31,15 @@ export const GameHUD: React.FC<GameHUDProps> = ({
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    const getColorForRunner = (color: RunnerColor): string => {
-        const colors = {
+    const getColorStyle = (color: string): string => {
+        const colors: Record<string, string> = {
             red: '#ff4444',
             blue: '#4444ff',
             green: '#44ff44',
             yellow: '#ffff44',
             purple: '#ff44ff'
         };
-        return colors[color];
+        return colors[color] || '#ffffff';
     };
 
     return (
@@ -55,14 +52,12 @@ export const GameHUD: React.FC<GameHUDProps> = ({
             zIndex: 10,
             fontFamily: '"Courier New", monospace'
         }}>
-            {/* Barra superior */}
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 padding: '15px 20px',
                 background: 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)'
             }}>
-                {/* Tiempo y récord */}
                 <div style={{
                     backgroundColor: 'rgba(0,0,0,0.7)',
                     padding: '8px 15px',
@@ -73,20 +68,14 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                     <div style={{ color: 'white', fontSize: '24px', fontWeight: 'bold' }}>
                         {formatTime(gameTime)}
                     </div>
-                    {worldRecord && (
-                        <div style={{ color: '#aaa', fontSize: '10px' }}>
-                            Record: {formatTime(worldRecord)}
-                        </div>
-                    )}
                 </div>
 
-                {/* Información del jugador actual */}
                 {currentPlayer && (
                     <div style={{
                         backgroundColor: 'rgba(0,0,0,0.7)',
                         padding: '8px 15px',
                         borderRadius: '10px',
-                        border: `2px solid ${getColorForRunner(currentPlayer.color)}`,
+                        border: `2px solid ${getColorStyle(currentPlayer.color)}`,
                         minWidth: '200px'
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -99,28 +88,21 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                                 <div style={{ color: 'white', fontWeight: 'bold' }}>
                                     {currentPlayer.name}
                                 </div>
-                                <div style={{ display: 'flex', gap: '5px', marginTop: '5px', alignItems: 'center' }}>
-                                    {Array.from({ length: 3 }).map((_, i) => (
+                                <div style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
+                                    {[1, 2, 3].map(i => (
                                         <img
                                             key={i}
-                                            src={getSprite(i < currentPlayer.lives ? 'ui_heart_full' : 'ui_heart_empty')?.src}
+                                            src={getSprite(i <= currentPlayer.lives ? 'ui_heart_full' : 'ui_heart_empty')?.src}
                                             alt="heart"
-                                            style={{ width: '16px', height: '16px' }}
+                                            style={{ width: '16px' }}
                                         />
                                     ))}
-                                    {/* Estrellas decorativas */}
-                                    <div style={{ display: 'flex', gap: '2px', marginLeft: '8px' }}>
-                                        <span style={{ color: '#ffd700', fontSize: '12px' }}>⭐</span>
-                                        <span style={{ color: '#ffd700', fontSize: '12px' }}>⭐</span>
-                                        <span style={{ color: '#ffd700', fontSize: '12px' }}>⭐</span>
-                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Barra de progreso de distancia */}
                 {currentPlayer && (
                     <div style={{
                         backgroundColor: 'rgba(0,0,0,0.7)',
@@ -128,57 +110,28 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                         borderRadius: '10px',
                         minWidth: '250px'
                     }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
-                            <img
-                                src={getSprite('ui_distance_icon')?.src}
-                                alt="distance"
-                                style={{ width: '16px', height: '16px' }}
-                            />
+                        <div style={{ marginBottom: '5px' }}>
                             <span style={{ color: 'white', fontSize: '14px' }}>
                                 Progreso: {Math.floor(currentPlayer.distance)} / {currentPlayer.maxDistance}
                             </span>
                         </div>
                         <div style={{
-                            position: 'relative',
                             width: '100%',
                             height: '20px',
                             backgroundColor: 'rgba(255,255,255,0.2)',
                             borderRadius: '10px',
                             overflow: 'hidden'
                         }}>
-                            <img
-                                src={getSprite('ui_progress_bar_bg')?.src}
-                                alt="bg"
-                                style={{
-                                    position: 'absolute',
-                                    width: '100%',
-                                    height: '20px',
-                                    top: 0,
-                                    left: 0
-                                }}
-                            />
                             <div style={{
-                                position: 'absolute',
                                 width: `${(currentPlayer.distance / currentPlayer.maxDistance) * 100}%`,
-                                height: '20px',
-                                overflow: 'hidden',
-                                borderRadius: '10px'
-                            }}>
-                                <img
-                                    src={getSprite('ui_progress_bar_fill')?.src}
-                                    alt="fill"
-                                    style={{
-                                        width: '100%',
-                                        height: '20px'
-                                    }}
-                                />
-                            </div>
+                                height: '100%',
+                                backgroundColor: '#ffd700'
+                            }} />
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* Lista de jugadores (lado izquierdo) con estrellas */}
             <div style={{
                 position: 'absolute',
                 left: '20px',
@@ -195,41 +148,33 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                         display: 'flex',
                         alignItems: 'center',
                         gap: '10px',
-                        border: `1px solid ${getColorForRunner(player.color)}`,
+                        border: `1px solid ${getColorStyle(player.color)}`,
                         opacity: player.isAlive ? 1 : 0.5
                     }}>
                         <img
                             src={getSprite(`lobby_avatar_select_${player.color}`)?.src}
                             alt={player.name}
-                            style={{ width: '32px', borderRadius: '5px' }}
+                            style={{ width: '32px' }}
                         />
                         <div>
                             <div style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>
                                 {player.name}
                             </div>
-                            <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
-                                {/* Vidas (corazones) */}
-                                {Array.from({ length: 3 }).map((_, i) => (
+                            <div style={{ display: 'flex', gap: '3px' }}>
+                                {[1, 2, 3].map(i => (
                                     <img
                                         key={i}
-                                        src={getSprite(i < player.lives ? 'ui_heart_full' : 'ui_heart_empty')?.src}
+                                        src={getSprite(i <= player.lives ? 'ui_heart_full' : 'ui_heart_empty')?.src}
                                         alt="heart"
-                                        style={{ width: '12px', height: '12px' }}
+                                        style={{ width: '12px' }}
                                     />
                                 ))}
-                                {/* Estrellas decorativas al lado */}
-                                <div style={{ display: 'flex', gap: '2px', marginLeft: '8px' }}>
-                                    <span style={{ color: '#ffd700', fontSize: '10px' }}>⭐</span>
-                                    <span style={{ color: '#ffd700', fontSize: '10px' }}>⭐</span>
-                                    <span style={{ color: '#ffd700', fontSize: '10px' }}>⭐</span>
-                                </div>
                             </div>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Controles */}
             <div style={{
                 position: 'absolute',
                 bottom: '20px',
@@ -239,21 +184,10 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                 padding: '10px 20px',
                 borderRadius: '10px',
                 display: 'flex',
-                gap: '20px',
-                pointerEvents: 'none'
+                gap: '20px'
             }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '24px' }}>A D</div>
-                    <div style={{ color: '#aaa', fontSize: '10px' }}>Moverse</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '24px' }}>W</div>
-                    <div style={{ color: '#aaa', fontSize: '10px' }}>Saltar</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '24px' }}>S</div>
-                    <div style={{ color: '#aaa', fontSize: '10px' }}>Deslizar</div>
-                </div>
+                <div><span style={{ fontSize: '20px' }}>W</span> <span style={{ color: '#aaa' }}>Saltar</span></div>
+                <div><span style={{ fontSize: '20px' }}>S</span> <span style={{ color: '#aaa' }}>Deslizar</span></div>
             </div>
         </div>
     );

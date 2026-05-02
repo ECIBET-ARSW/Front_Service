@@ -57,8 +57,7 @@ export const CountdownOverlay: React.FC<CountdownOverlayProps> = ({
             justifyContent: 'center',
             alignItems: 'center',
             backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            zIndex: 1000,
-            animation: isGo ? 'goPulse 0.5s ease-out' : 'none'
+            zIndex: 1000
         }}>
             {image && (
                 <img
@@ -71,22 +70,25 @@ export const CountdownOverlay: React.FC<CountdownOverlayProps> = ({
                     }}
                 />
             )}
-
+            {!image && (
+                <div style={{
+                    fontSize: '80px',
+                    fontWeight: 'bold',
+                    color: '#ffd700',
+                    animation: isGo ? 'bounce 0.5s ease-out' : 'pulse 1s ease-in-out infinite'
+                }}>
+                    {isGo ? 'GO!' : count}
+                </div>
+            )}
             <style>{`
                 @keyframes pulse {
                     0%, 100% { transform: scale(1); }
                     50% { transform: scale(1.1); }
                 }
-                
                 @keyframes bounce {
                     0% { transform: scale(0.5); opacity: 0; }
                     50% { transform: scale(1.2); }
                     100% { transform: scale(1); opacity: 1; }
-                }
-                
-                @keyframes goPulse {
-                    0% { background-color: rgba(0, 0, 0, 0.7); }
-                    100% { background-color: rgba(0, 0, 0, 0); }
                 }
             `}</style>
         </div>

@@ -131,13 +131,20 @@ export const useSpriteLoader = (): SpriteLoaderReturn => {
     const spriteCache = useRef<Map<string, HTMLImageElement>>(new Map());
 
     const loadImage = (key: string, src: string): Promise<HTMLImageElement> => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             const img = new Image();
             img.onload = () => {
                 spriteCache.current.set(key, img);
                 resolve(img);
             };
-            img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+            img.onerror = () => {
+                console.warn(`Failed to load image: ${src}, using fallback`);
+                const fallback = new Image();
+                fallback.width = 32;
+                fallback.height = 32;
+                spriteCache.current.set(key, fallback);
+                resolve(fallback);
+            };
             img.src = src;
         });
     };
@@ -212,6 +219,8 @@ export const useSpriteLoader = (): SpriteLoaderReturn => {
         const img = spriteCache.current.get(spriteKey);
         if (!img) {
             console.warn(`Sprite not found: ${spriteKey}`);
+            ctx.fillStyle = '#ff00ff';
+            ctx.fillRect(x, y, 32 * scale, 32 * scale);
             return;
         }
 
@@ -250,7 +259,11 @@ export const useSpriteLoader = (): SpriteLoaderReturn => {
         height: number = 32
     ) => {
         const img = spriteCache.current.get(`ground_${groundType}`);
-        if (!img) return;
+        if (!img) {
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(x, y, width, height);
+            return;
+        }
         ctx.drawImage(img, x, y, width, height);
     }, []);
 
@@ -263,10 +276,17 @@ export const useSpriteLoader = (): SpriteLoaderReturn => {
         scale: number = 1
     ) => {
         const img = spriteCache.current.get(`obstacle_${obstacleType}`);
-        if (!img) return;
+        if (!img) {
+            ctx.fillStyle = '#ff0000';
+            ctx.fillRect(x, y, 32 * scale, 32 * scale);
+            return;
+        }
 
         const config = SPRITES_CONFIG.obstacles[obstacleType];
-        if (!config) return;
+        if (!config) {
+            ctx.drawImage(img, x, y, 32 * scale, 32 * scale);
+            return;
+        }
 
         const { frameWidth, frameHeight, frames } = config;
         const validFrameIndex = frameIndex % frames;

@@ -1,38 +1,39 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { useSpriteLoader } from '../hooks/useSpriteLoader';
-import { GroundType, ObstacleType, RunnerColor, RunnerAnimation } from '../config/sprites.config';
+import { GroundType, ObstacleType } from '../config/sprites.config';
 
 interface Player {
     id: string;
     name: string;
-    color: RunnerColor;
-    animation: RunnerAnimation;
+    color: string;
+    animation: string;
     frameIndex: number;
     x: number;
     y: number;
     isAlive: boolean;
+    lives: number;
+    distance: number;
 }
 
 interface Obstacle {
-    type: ObstacleType;
+    type: string;
     frameIndex: number;
     x: number;
     y: number;
 }
 
 interface Effect {
-    type: 'dust' | 'jump' | 'explosion' | 'star';
+    type: string;
     frameIndex: number;
     x: number;
     y: number;
-    duration?: number;
 }
 
 interface GameState {
     players: Player[];
     obstacles: Obstacle[];
     effects: Effect[];
-    groundType: GroundType;
+    groundType: string;
     worldOffset: number;
     gameTime: number;
 }
@@ -52,27 +53,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
                                                       }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationRef = useRef<number>();
+    const { drawFrame, drawGroundTile, drawObstacle, getSprite } = useSpriteLoader();
 
-    const {
-        isLoading,
-        drawFrame,
-        drawGroundTile,
-        drawObstacle,
-        getAnimationConfig,
-        getSprite
-    } = useSpriteLoader();
-
-    const GROUND_Y = canvasHeight - 100;
+    const GROUND_Y = canvasHeight - 80;
     const TILE_SIZE = 32;
 
-    useEffect(() => {
-        console.log('GameCanvas - gameState changed:', gameState);
-        console.log('GameCanvas - isLoading:', isLoading);
-        console.log('GameCanvas - canvas dimensions:', canvasWidth, canvasHeight);
-    }, [gameState, isLoading, canvasWidth, canvasHeight]);
-
     const drawSky = useCallback((ctx: CanvasRenderingContext2D) => {
-        console.log('Drawing sky');
         const skyImg = getSprite('sky');
         if (skyImg) {
             ctx.drawImage(skyImg, 0, 0, canvasWidth, canvasHeight);
@@ -84,90 +70,105 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
         }
-    }, [canvasWidth, canvasHeight, getSprite]);
+
+        ctx.fillStyle = '#2d5016';
+        ctx.fillRect(0, GROUND_Y - 20, canvasWidth, 20);
+    }, [canvasWidth, canvasHeight, getSprite, GROUND_Y]);
 
     const drawGround = useCallback((ctx: CanvasRenderingContext2D, worldOffset: number) => {
-        if (!gameState?.groundType) {
-            console.log('No groundType in gameState');
-            return;
+        if (!gameState?.groundType) return;
+
+        let groundTypeKey: GroundType = 'normal';
+        switch (gameState.groundType) {
+            case 'normal': groundTypeKey = 'normal'; break;
+            case 'cracked': groundTypeKey = 'cracked'; break;
+            case 'wet': groundTypeKey = 'wet'; break;
+            case 'slippery': groundTypeKey = 'slippery'; break;
+            default: groundTypeKey = 'normal';
         }
 
-        console.log('Drawing ground, worldOffset:', worldOffset);
         const tilesNeeded = Math.ceil(canvasWidth / TILE_SIZE) + 2;
         const startTile = Math.floor(worldOffset / TILE_SIZE);
 
         for (let i = -1; i < tilesNeeded; i++) {
             const tileX = (i + startTile) * TILE_SIZE - (worldOffset % TILE_SIZE);
             if (tileX > -TILE_SIZE && tileX < canvasWidth) {
-                drawGroundTile(gameState.groundType, ctx, tileX, GROUND_Y, TILE_SIZE, TILE_SIZE);
+                drawGroundTile(groundTypeKey, ctx, tileX, GROUND_Y, TILE_SIZE, TILE_SIZE);
             }
         }
-    }, [canvasWidth, gameState?.groundType, drawGroundTile, GROUND_Y]);
 
-    const drawObstacles = useCallback((ctx: CanvasRenderingContext2D) => {
-        if (!gameState?.obstacles) {
-            console.log('No obstacles in gameState');
-            return;
-        }
+        ctx.fillStyle = '#6B4226';
+        ctx.fillRect(0, GROUND_Y + TILE_SIZE - 8, canvasWidth, 8);
+    }, [canvasWidth, gameState?.groundType, drawGroundTile, GROUND_Y, TILE_SIZE]);
 
-        console.log('Drawing obstacles, count:', gameState.obstacles.length);
-        const visibleObstacles = gameState.obstacles.filter(
-            (obs) => obs.x > -100 && obs.x < canvasWidth + 100
-        );
+    const drawObstacles = useCallback((ctx: CanvasRenderingContext2D, worldOffset: number) => {
+        if (!gameState?.obstacles) return;
+
+        const visibleObstacles = gameState.obstacles.filter((obs) => {
+            const screenX = obs.x - worldOffset;
+            return screenX > -200 && screenX < canvasWidth + 200;
+        });
 
         visibleObstacles.forEach((obstacle) => {
-            drawObstacle(
-                obstacle.type,
-                obstacle.frameIndex,
-                ctx,
-                obstacle.x,
-                obstacle.y,
-                1
-            );
+            const screenX = obstacle.x - worldOffset;
+            let obstacleType: ObstacleType = 'platform';
+
+            switch (obstacle.type.toLowerCase()) {
+                case 'wall': obstacleType = 'wall'; break;
+                case 'spike': obstacleType = 'spike'; break;
+                case 'pit': obstacleType = 'pit'; break;
+                case 'platform': obstacleType = 'platform'; break;
+                case 'rock': obstacleType = 'rock'; break;
+                case 'lava': obstacleType = 'lava'; break;
+                case 'blade': obstacleType = 'blade'; break;
+                case 'sink_block': obstacleType = 'sink_block'; break;
+                case 'trampoline': obstacleType = 'trampoline'; break;
+                case 'powerup_speed': obstacleType = 'powerup_speed'; break;
+                default: obstacleType = 'platform';
+            }
+
+            drawObstacle(obstacleType, obstacle.frameIndex, ctx, screenX, obstacle.y, 1);
         });
     }, [gameState?.obstacles, canvasWidth, drawObstacle]);
 
-    const drawPlayers = useCallback((ctx: CanvasRenderingContext2D) => {
-        if (!gameState?.players) {
-            console.log('No players in gameState');
-            return;
-        }
+    const drawPlayers = useCallback((ctx: CanvasRenderingContext2D, worldOffset: number) => {
+        if (!gameState?.players) return;
 
-        console.log('Drawing players, count:', gameState.players.length);
+        const sortedPlayers = [...gameState.players].sort((a, b) => a.y - b.y);
 
-        gameState.players.forEach((player) => {
-            console.log(`Player ${player.name}: x=${player.x}, y=${player.y}, isAlive=${player.isAlive}, animation=${player.animation}, frameIndex=${player.frameIndex}`);
-
+        sortedPlayers.forEach((player) => {
             if (!player.isAlive) return;
 
-            const config = getAnimationConfig(player.color, player.animation);
-            console.log(`Animation config for ${player.color}_${player.animation}:`, config);
+            const screenX = player.x - worldOffset;
+            const spriteKey = `${player.color}_${player.animation}`;
 
             ctx.save();
+
             ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.beginPath();
-            ctx.ellipse(player.x + 16, player.y + 28, 12, 6, 0, 0, Math.PI * 2);
+            ctx.ellipse(screenX + 20, player.y + 28, 12, 6, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            drawFrame(
-                `${player.color}_${player.animation}`,
-                player.frameIndex,
-                ctx,
-                player.x,
-                player.y,
-                1,
-                false
-            );
+            drawFrame(spriteKey, player.frameIndex, ctx, screenX, player.y, 1, false);
 
             ctx.font = 'bold 12px "Courier New", monospace';
             ctx.textAlign = 'center';
             ctx.fillStyle = '#FFFFFF';
-            ctx.fillText(player.name, player.x + 16, player.y - 8);
+            ctx.shadowBlur = 0;
+            ctx.fillText(player.name, screenX + 20, player.y - 8);
+
+            for (let i = 0; i < Math.min(player.lives, 5); i++) {
+                const heartImg = getSprite('ui_heart_full');
+                if (heartImg) {
+                    ctx.drawImage(heartImg, screenX - 5 + (i * 12), player.y - 20, 10, 10);
+                }
+            }
+
             ctx.restore();
         });
-    }, [gameState?.players, drawFrame, getAnimationConfig]);
+    }, [gameState?.players, drawFrame, getSprite]);
 
-    const drawEffects = useCallback((ctx: CanvasRenderingContext2D) => {
+    const drawEffects = useCallback((ctx: CanvasRenderingContext2D, worldOffset: number) => {
         if (!gameState?.effects) return;
 
         gameState.effects.forEach((effect) => {
@@ -194,10 +195,40 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             }
 
             if (spriteKey) {
-                drawFrame(spriteKey, effect.frameIndex, ctx, effect.x, effect.y, scale);
+                const screenX = effect.x - worldOffset;
+                drawFrame(spriteKey, effect.frameIndex, ctx, screenX, effect.y, scale);
             }
         });
     }, [gameState?.effects, drawFrame]);
+
+    const drawUI = useCallback((ctx: CanvasRenderingContext2D) => {
+        if (!gameState) return;
+
+        ctx.font = 'bold 20px "Courier New", monospace';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowBlur = 0;
+        ctx.textAlign = 'left';
+
+        const minutes = Math.floor(gameState.gameTime / 60);
+        const seconds = Math.floor(gameState.gameTime % 60);
+        const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        ctx.fillText(timeString, 20, 40);
+
+        const distanceImg = getSprite('ui_distance_icon');
+        if (distanceImg) {
+            ctx.drawImage(distanceImg, 20, 55, 20, 20);
+        }
+        if (gameState.players && gameState.players.length > 0) {
+            const playerDistance = gameState.players[0].distance;
+            ctx.fillText(`${Math.floor(playerDistance)}m`, 45, 72);
+        }
+
+        ctx.textAlign = 'right';
+        ctx.font = 'bold 14px "Courier New", monospace';
+        ctx.fillStyle = '#AAAAAA';
+        ctx.fillText(`${gameState.players?.length || 0} players`, canvasWidth - 20, 30);
+        ctx.textAlign = 'left';
+    }, [gameState, canvasWidth, getSprite]);
 
     const animate = useCallback((timestamp: number) => {
         if (!canvasRef.current) return;
@@ -208,21 +239,26 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.imageSmoothingEnabled = false;
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-        if (gameState) {
-            console.log('Rendering game frame');
+        if (gameState && gameState.players && gameState.players.length > 0) {
+            const worldOffset = gameState.worldOffset || 0;
             drawSky(ctx);
-            drawGround(ctx, gameState.worldOffset);
-            drawObstacles(ctx);
-            drawPlayers(ctx);
-            drawEffects(ctx);
+            drawGround(ctx, worldOffset);
+            drawObstacles(ctx, worldOffset);
+            drawPlayers(ctx, worldOffset);
+            drawEffects(ctx, worldOffset);
+            drawUI(ctx);
         } else {
-            console.log('No gameState, showing waiting message');
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            ctx.font = '24px "Courier New", monospace';
+            ctx.font = 'bold 28px "Courier New", monospace';
             ctx.fillStyle = '#FFFFFF';
             ctx.textAlign = 'center';
-            ctx.fillText('Esperando partida...', canvasWidth / 2, canvasHeight / 2);
+            ctx.fillText('ESPERANDO PARTIDA...', canvasWidth / 2, canvasHeight / 2 - 30);
+            ctx.font = '18px "Courier New", monospace';
+            ctx.fillStyle = '#ffd700';
+            ctx.fillText('Presiona W para saltar', canvasWidth / 2, canvasHeight / 2 + 20);
+            ctx.fillStyle = '#AAAAAA';
+            ctx.fillText('Presiona S para deslizar', canvasWidth / 2, canvasHeight / 2 + 50);
             ctx.textAlign = 'left';
         }
 
@@ -231,7 +267,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         }
 
         animationRef.current = requestAnimationFrame(animate);
-    }, [canvasWidth, canvasHeight, gameState, drawSky, drawGround, drawObstacles, drawPlayers, drawEffects, onAnimationFrame]);
+    }, [canvasWidth, canvasHeight, gameState, drawSky, drawGround, drawObstacles, drawPlayers, drawEffects, drawUI, onAnimationFrame]);
 
     useEffect(() => {
         animationRef.current = requestAnimationFrame(animate);
