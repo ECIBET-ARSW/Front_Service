@@ -20,6 +20,19 @@ const WaitingRoom = () => {
     }
   }, [gameEvent, roomId, navigate]);
 
+  // Salir de la sala si el usuario navega sin presionar "Salir"
+  useEffect(() => {
+    return () => {
+      if (roomId && user?.id) {
+        fetch(`${import.meta.env.VITE_RUSSIAN_ROULETTE_URL ?? 'http://localhost:8079'}/api/games/liars-bar/rooms/${roomId}/leave?userId=${user.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') ?? ''}` },
+          keepalive: true,
+        }).catch(() => {});
+      }
+    };
+  }, [roomId, user?.id]);
+
   const handleLeave = async () => {
     await leaveRoom();
     navigate('/games/liars-bar');
