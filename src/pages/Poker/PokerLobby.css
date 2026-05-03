@@ -1,0 +1,452 @@
+.lobby-page {
+  min-height: 100vh;
+  padding: 40px 20px;
+  background: #0d0d1a;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+}
+
+.lobby-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.lobby-title {
+  font-size: 3rem;
+  color: #f0a500;
+  letter-spacing: 8px;
+  text-shadow: 4px 4px 0 #7a5200, 0 0 20px rgba(240, 165, 0, 0.4);
+  image-rendering: pixelated;
+}
+
+.lobby-subtitle {
+  color: #888;
+  font-size: 0.9rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+
+.lobby-how-to-play {
+  max-width: 800px;
+  margin: 0 auto 40px;
+  background: #16213e;
+  border: 1px solid #2a2a4a;
+  border-radius: 4px;
+  padding: 24px 28px;
+}
+
+.htp-title {
+  color: #f0a500;
+  font-size: 0.8rem;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #2a2a4a;
+  padding-bottom: 10px;
+}
+
+.htp-steps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.htp-step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.htp-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.htp-step strong {
+  display: block;
+  color: #fff;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.htp-step p {
+  color: #888;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.lobby-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.lobby-rooms-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #f0a500;
+  padding-bottom: 12px;
+}
+
+.lobby-rooms-header h2 {
+  color: #f0a500;
+  font-size: 1rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.lobby-loading,
+.lobby-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #555;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+}
+
+.lobby-rooms {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.room-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #16213e;
+  border: 2px solid #2a2a4a;
+  border-radius: 4px;
+  padding: 16px 20px;
+  transition: border-color 0.2s;
+}
+
+.room-card:hover {
+  border-color: #f0a500;
+}
+
+.room-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.room-name {
+  font-size: 1rem;
+  color: #fff;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.room-players {
+  font-size: 0.75rem;
+  color: #f0a500;
+}
+
+.room-buyin {
+  font-size: 0.75rem;
+  color: #27ae60;
+}
+
+.room-player-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.room-player-chip {
+  background: #0f3460;
+  border: 1px solid #2a4a8a;
+  border-radius: 2px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  color: #aaa;
+}
+
+.room-badge {
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  padding: 4px 10px;
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+
+.room-badge.in-progress {
+  background: #1a3a1a;
+  color: #27ae60;
+  border: 1px solid #27ae60;
+}
+
+.room-badge.full {
+  background: #3a1a1a;
+  color: #c0392b;
+  border: 1px solid #c0392b;
+}
+
+.btn-create {
+  background: #f0a500;
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.btn-create:hover { background: #ffc107; }
+
+.btn-join {
+  background: transparent;
+  color: #f0a500;
+  border: 2px solid #f0a500;
+  padding: 8px 20px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-join:hover {
+  background: #f0a500;
+  color: #000;
+}
+
+.btn-join:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.modal {
+  background: #16213e;
+  border: 2px solid #f0a500;
+  border-radius: 4px;
+  padding: 32px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.modal h3 {
+  color: #f0a500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  font-size: 1rem;
+}
+
+.modal-field {
+  margin-bottom: 20px;
+}
+
+.modal-field label {
+  display: block;
+  font-size: 0.75rem;
+  color: #888;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.modal-field input {
+  width: 100%;
+  background: #0d0d1a;
+  border: 1px solid #2a2a4a;
+  color: #fff;
+  padding: 10px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.modal-field input:focus {
+  outline: none;
+  border-color: #f0a500;
+}
+
+.buyin-options {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.buyin-btn {
+  flex: 1;
+  min-width: 60px;
+  background: #0d0d1a;
+  border: 1px solid #2a2a4a;
+  color: #888;
+  padding: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.buyin-btn.selected,
+.buyin-btn:hover {
+  border-color: #f0a500;
+  color: #f0a500;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn-cancel {
+  flex: 1;
+  background: transparent;
+  border: 1px solid #555;
+  color: #555;
+  padding: 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+  border-color: #fff;
+  color: #fff;
+}
+
+.btn-confirm {
+  flex: 1;
+  background: #f0a500;
+  border: none;
+  color: #000;
+  padding: 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+
+.btn-confirm:hover { background: #ffc107; }
+.btn-confirm:disabled {
+  background: #555;
+  color: #888;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .lobby-page {
+    padding: 24px 16px;
+  }
+
+  .lobby-title {
+    font-size: 2rem;
+    letter-spacing: 4px;
+  }
+
+  .lobby-subtitle {
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+  }
+
+  .lobby-how-to-play {
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+
+  .htp-steps {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .lobby-rooms-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .btn-create {
+    width: 100%;
+    text-align: center;
+  }
+
+  .room-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .room-actions {
+    width: 100%;
+  }
+
+  .btn-join {
+    width: 100%;
+    text-align: center;
+  }
+
+  .modal {
+    padding: 24px 16px;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .lobby-title {
+    font-size: 1.6rem;
+    letter-spacing: 3px;
+  }
+
+  .htp-icon {
+    font-size: 1.1rem;
+  }
+
+  .htp-step strong {
+    font-size: 0.75rem;
+  }
+
+  .htp-step p {
+    font-size: 0.68rem;
+  }
+
+  .buyin-options {
+    gap: 6px;
+  }
+
+  .buyin-btn {
+    font-size: 0.65rem;
+    padding: 6px 4px;
+  }
+}

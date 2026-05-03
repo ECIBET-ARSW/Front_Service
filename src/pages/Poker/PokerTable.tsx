@@ -105,7 +105,7 @@ export default function PokerTable({ game, currentPlayer, privateHand, onContinu
 
       {/* Indicador de turno */}
       <div style={{ ...s.turnBanner, borderColor: isMyTurn ? '#f0a500' : '#1a1a1a', background: isMyTurn ? 'rgba(240,165,0,0.07)' : 'rgba(0,0,0,0.5)' }}>
-        <span style={{ color: isMyTurn ? '#f0a500' : '#888', letterSpacing: 3, fontSize: 18 }}>
+        <span style={{ color: isMyTurn ? '#f0a500' : '#888', letterSpacing: 3, fontSize: 'clamp(12px, 3vw, 18px)' }}>
           {isMyTurn ? '▶ TU TURNO' : currentTurnPlayer ? `TURNO DE ${currentTurnPlayer.name?.toUpperCase()}...` : ''}
         </span>
       </div>
@@ -152,7 +152,7 @@ export default function PokerTable({ game, currentPlayer, privateHand, onContinu
                 <span style={{ ...s.playerName, color: isTurn ? '#f0a500' : isMe ? 'rgba(240,165,0,0.65)' : '#666' }}>
                   {p.name}
                 </span>
-                <span style={s.playerCredits}>{(p.credit ?? p.chips ?? 0).toLocaleString()} COP</span>
+                <span style={s.playerCredits}>{(p.credit ?? p.chips ?? 0).toLocaleString()}</span>
                 {p.currentBet > 0 && <span style={s.playerBet}>↑ {p.currentBet.toLocaleString()}</span>}
                 {p.folded && <span style={s.badge}>RETIRO</span>}
                 {p.allIn  && <span style={{ ...s.badge, color: '#e67e22', borderColor: '#5a3000' }}>ALL-IN</span>}
@@ -187,54 +187,56 @@ export default function PokerTable({ game, currentPlayer, privateHand, onContinu
   )
 }
 
+const isMobile = () => window.innerWidth <= 768
+
 const s: Record<string, React.CSSProperties> = {
-  center:         { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 500, gap: 16 },
+  center:         { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 16 },
   connectingDot:  { width: 12, height: 12, borderRadius: '50%', background: '#27ae60', boxShadow: '0 0 14px #27ae60' },
   connectingText: { fontFamily: 'Courier New, monospace', color: '#555', fontSize: 14, letterSpacing: 4 },
 
-  waitingBox:   { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: '48px 64px', border: '1px solid #1e1e1e', background: 'rgba(0,0,0,0.7)', borderRadius: 2 },
-  waitingTitle: { fontFamily: 'Courier New, monospace', color: '#f0a500', fontSize: 18, letterSpacing: 4, textTransform: 'uppercase', margin: 0 },
-  waitingCount: { fontFamily: 'Courier New, monospace', color: '#fff', fontSize: 64, fontWeight: 'bold', letterSpacing: 4, margin: 0 },
+  waitingBox:   { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: 'clamp(24px, 5vw, 48px) clamp(24px, 8vw, 64px)', border: '1px solid #1e1e1e', background: 'rgba(0,0,0,0.7)', borderRadius: 2 },
+  waitingTitle: { fontFamily: 'Courier New, monospace', color: '#f0a500', fontSize: 'clamp(14px, 3vw, 18px)', letterSpacing: 4, textTransform: 'uppercase', margin: 0 },
+  waitingCount: { fontFamily: 'Courier New, monospace', color: '#fff', fontSize: 'clamp(40px, 10vw, 64px)', fontWeight: 'bold', letterSpacing: 4, margin: 0 },
   playerChips:  { display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' },
-  playerChip:   { fontFamily: 'Courier New, monospace', fontSize: 16, color: '#aaa', padding: '6px 16px', border: '1px solid', borderRadius: 2, letterSpacing: 1 },
+  playerChip:   { fontFamily: 'Courier New, monospace', fontSize: 'clamp(12px, 3vw, 16px)', color: '#aaa', padding: '6px 16px', border: '1px solid', borderRadius: 2, letterSpacing: 1 },
 
-  endScreen:    { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 500 },
-  endBox:       { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, padding: '40px 56px', border: '2px solid', background: 'rgba(0,0,0,0.9)', borderRadius: 2 },
-  endTitle:     { fontFamily: 'Courier New, monospace', fontSize: 36, fontWeight: 'bold', letterSpacing: 5, margin: 0 },
-  endWinnerName:{ fontFamily: 'Courier New, monospace', fontSize: 16, color: '#555', letterSpacing: 2, margin: 0 },
-  endPot:       { fontFamily: 'Courier New, monospace', fontSize: 44, fontWeight: 'bold', color: '#f0a500', letterSpacing: 3, margin: 0 },
-  endCards:     { display: 'flex', gap: 10 },
-  endCard:      { width: 84, height: 126, objectFit: 'contain', borderRadius: 4, border: '1px solid #2a2a2a', imageRendering: 'pixelated' as any },
-  gameBtn:      { fontFamily: 'Courier New, monospace', fontWeight: 'bold', fontSize: 18, letterSpacing: 4, padding: '16px 40px', border: 'none', borderRadius: 2, cursor: 'pointer', textTransform: 'uppercase' },
+  endScreen:    { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, padding: 16 },
+  endBox:       { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, padding: 'clamp(24px, 5vw, 40px) clamp(20px, 6vw, 56px)', border: '2px solid', background: 'rgba(0,0,0,0.9)', borderRadius: 2, width: '100%', maxWidth: 480 },
+  endTitle:     { fontFamily: 'Courier New, monospace', fontSize: 'clamp(22px, 6vw, 36px)', fontWeight: 'bold', letterSpacing: 5, margin: 0 },
+  endWinnerName:{ fontFamily: 'Courier New, monospace', fontSize: 'clamp(12px, 3vw, 16px)', color: '#555', letterSpacing: 2, margin: 0 },
+  endPot:       { fontFamily: 'Courier New, monospace', fontSize: 'clamp(28px, 8vw, 44px)', fontWeight: 'bold', color: '#f0a500', letterSpacing: 3, margin: 0 },
+  endCards:     { display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' },
+  endCard:      { width: 'clamp(56px, 14vw, 84px)', height: 'auto', aspectRatio: '2/3', objectFit: 'contain', borderRadius: 4, border: '1px solid #2a2a2a', imageRendering: 'pixelated' as any },
+  gameBtn:      { fontFamily: 'Courier New, monospace', fontWeight: 'bold', fontSize: 'clamp(14px, 3vw, 18px)', letterSpacing: 4, padding: 'clamp(10px, 3vw, 16px) clamp(20px, 6vw, 40px)', border: 'none', borderRadius: 2, cursor: 'pointer', textTransform: 'uppercase', width: '100%' },
 
-  wrap:       { display: 'flex', flexDirection: 'column', gap: 0 },
+  wrap: { display: 'flex', flexDirection: 'column', gap: 0 },
 
-  betBanner:  { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '16px 24px', background: 'rgba(0,0,0,0.8)', borderBottom: '1px solid #111' },
-  betLabel:   { fontFamily: 'Courier New, monospace', fontSize: 14, color: '#555', letterSpacing: 3, textTransform: 'uppercase' },
-  betAmt:     { fontFamily: 'Courier New, monospace', fontSize: 26, color: '#f0a500', fontWeight: 'bold', letterSpacing: 2 },
+  betBanner: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 'clamp(10px, 2vw, 16px) 24px', background: 'rgba(0,0,0,0.8)', borderBottom: '1px solid #111', flexWrap: 'wrap' },
+  betLabel:  { fontFamily: 'Courier New, monospace', fontSize: 'clamp(10px, 2vw, 14px)', color: '#555', letterSpacing: 3, textTransform: 'uppercase' },
+  betAmt:    { fontFamily: 'Courier New, monospace', fontSize: 'clamp(18px, 4vw, 26px)', color: '#f0a500', fontWeight: 'bold', letterSpacing: 2 },
 
-  turnBanner: { padding: '14px 24px', borderTop: '1px solid', borderBottom: '1px solid', textAlign: 'center', transition: 'all 0.3s', fontFamily: 'Courier New, monospace' },
+  turnBanner: { padding: 'clamp(8px, 2vw, 14px) 24px', borderTop: '1px solid', borderBottom: '1px solid', textAlign: 'center', transition: 'all 0.3s', fontFamily: 'Courier New, monospace' },
 
-  sectionLabel: { fontFamily: 'Courier New, monospace', fontSize: 14, color: '#f0a500', letterSpacing: 4, textTransform: 'uppercase', margin: '0 0 14px 0', fontWeight: 'bold' },
+  sectionLabel: { fontFamily: 'Courier New, monospace', fontSize: 'clamp(10px, 2vw, 14px)', color: '#f0a500', letterSpacing: 4, textTransform: 'uppercase', margin: '0 0 14px 0', fontWeight: 'bold' },
 
-  communitySection: { padding: '24px 24px 20px', borderBottom: '1px solid #0f0f0f' },
-  communityCards:   { display: 'flex', gap: 14, justifyContent: 'center' },
-  communityCard:    { width: 120, height: 180, objectFit: 'contain', borderRadius: 6, border: '1px solid', imageRendering: 'pixelated' as any, transition: 'filter 0.3s, opacity 0.3s' },
+  communitySection: { padding: 'clamp(14px, 3vw, 24px) clamp(12px, 3vw, 24px) clamp(12px, 3vw, 20px)', borderBottom: '1px solid #0f0f0f' },
+  communityCards:   { display: 'flex', gap: 'clamp(6px, 2vw, 14px)', justifyContent: 'center', flexWrap: 'wrap' },
+  communityCard:    { width: 'clamp(54px, 16vw, 120px)', height: 'auto', aspectRatio: '2/3', objectFit: 'contain', borderRadius: 6, border: '1px solid', imageRendering: 'pixelated' as any, transition: 'filter 0.3s, opacity 0.3s' },
 
-  playersSection: { padding: '20px 24px', borderBottom: '1px solid #0f0f0f' },
-  playersGrid:    { display: 'flex', gap: 12, flexWrap: 'wrap' },
-  playerCard:     { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 12px', border: '1px solid', borderRadius: 2, minWidth: 110, maxWidth: 130, transition: 'all 0.2s' },
+  playersSection: { padding: 'clamp(12px, 3vw, 20px) clamp(12px, 3vw, 24px)', borderBottom: '1px solid #0f0f0f' },
+  playersGrid:    { display: 'flex', gap: 'clamp(6px, 2vw, 12px)', flexWrap: 'wrap', justifyContent: 'center' },
+  playerCard:     { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: 'clamp(8px, 2vw, 14px) clamp(6px, 2vw, 12px)', border: '1px solid', borderRadius: 2, minWidth: 'clamp(70px, 18vw, 110px)', maxWidth: 'clamp(80px, 20vw, 130px)', transition: 'all 0.2s', flex: '1 1 clamp(70px, 18vw, 110px)' },
   turnDot:        { position: 'absolute', top: -6, left: '50%', transform: 'translateX(-50%)', width: 10, height: 10, borderRadius: '50%', background: '#f0a500', boxShadow: '0 0 10px #f0a500' },
   turnLabel:      { position: 'absolute', top: -22, left: '50%', transform: 'translateX(-50%)', fontFamily: 'Courier New, monospace', fontSize: 11, color: '#f0a500', letterSpacing: 2, whiteSpace: 'nowrap', fontWeight: 'bold' },
-  playerAvatar:   { width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '1px solid #1a1a1a' },
-  playerName:     { fontFamily: 'Courier New, monospace', fontSize: 13, letterSpacing: 1, textAlign: 'center', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 0.2s' },
-  playerCredits:  { fontFamily: 'Courier New, monospace', fontSize: 12, color: '#555' },
-  playerBet:      { fontFamily: 'Courier New, monospace', fontSize: 12, color: '#7ec8e3' },
+  playerAvatar:   { width: 'clamp(36px, 10vw, 56px)', height: 'clamp(36px, 10vw, 56px)', borderRadius: '50%', objectFit: 'cover', border: '1px solid #1a1a1a' },
+  playerName:     { fontFamily: 'Courier New, monospace', fontSize: 'clamp(9px, 2vw, 13px)', letterSpacing: 1, textAlign: 'center', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 0.2s' },
+  playerCredits:  { fontFamily: 'Courier New, monospace', fontSize: 'clamp(8px, 1.8vw, 12px)', color: '#555' },
+  playerBet:      { fontFamily: 'Courier New, monospace', fontSize: 'clamp(8px, 1.8vw, 12px)', color: '#7ec8e3' },
   badge:          { fontFamily: 'Courier New, monospace', fontSize: 10, color: '#444', border: '1px solid #2a2a2a', padding: '2px 6px', borderRadius: 2, letterSpacing: 1 },
 
-  myHandSection:  { padding: '20px 24px 16px' },
-  myHandHeader:   { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
-  myCredits:      { fontFamily: 'Courier New, monospace', fontSize: 22, color: '#f0a500', fontWeight: 'bold', letterSpacing: 2 },
-  myCards:        { display: 'flex', gap: 20, justifyContent: 'center' },
-  myCard:         { width: 150, height: 225, objectFit: 'contain', borderRadius: 8, border: '2px solid #1e1e1e', imageRendering: 'pixelated' as any, boxShadow: '0 6px 24px rgba(0,0,0,0.9)', transition: 'transform 0.2s, box-shadow 0.2s' },
+  myHandSection:  { padding: 'clamp(12px, 3vw, 20px) clamp(12px, 3vw, 24px) clamp(10px, 2vw, 16px)' },
+  myHandHeader:   { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 },
+  myCredits:      { fontFamily: 'Courier New, monospace', fontSize: 'clamp(14px, 3.5vw, 22px)', color: '#f0a500', fontWeight: 'bold', letterSpacing: 2 },
+  myCards:        { display: 'flex', gap: 'clamp(10px, 3vw, 20px)', justifyContent: 'center' },
+  myCard:         { width: 'clamp(80px, 22vw, 150px)', height: 'auto', aspectRatio: '2/3', objectFit: 'contain', borderRadius: 8, border: '2px solid #1e1e1e', imageRendering: 'pixelated' as any, boxShadow: '0 6px 24px rgba(0,0,0,0.9)', transition: 'transform 0.2s, box-shadow 0.2s' },
 }
