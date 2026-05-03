@@ -39,6 +39,16 @@ const Games = () => {
     },
     {
       id: '4',
+      name: 'Armies',
+      description: 'Pulsa espacio más rápido que tu oponente. 3 rounds para ganar.',
+      minBet: 1000,
+      maxPlayers: 2,
+      icon: '💪',
+      gradient: 'red',
+      available: true
+    },
+    {
+      id: '5',
       name: 'Juego Retro',
       description: 'Experiencia nostálgica de consola antigua con premios modernos',
       minBet: 25,
@@ -52,6 +62,7 @@ const Games = () => {
   const handleGameClick = (game: Game) => {
     if (game.id === '2') navigate('/games/poker');
     if (game.id === '3') navigate('/games/liars-bar');
+    if (game.id === '4') navigate('/games/armies');
   };
 
   return (
