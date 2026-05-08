@@ -86,10 +86,10 @@ const assetPaths: Record<string, string> = {
     obstacle_trampoline: `${ASSETS_BASE_PATH}/obstacles/trampoline.png`,
     obstacle_powerup_speed: `${ASSETS_BASE_PATH}/obstacles/powerup_speed.png`,
     sky: `${ASSETS_BASE_PATH}/background/sky.png`,
-    ground_normal: `${ASSETS_BASE_PATH}/background/ground/ground_normal.png`,
-    ground_cracked: `${ASSETS_BASE_PATH}/background/ground/ground_cracked.png`,
-    ground_wet: `${ASSETS_BASE_PATH}/background/ground/ground_wet.png`,
-    ground_slippery: `${ASSETS_BASE_PATH}/background/ground/ground_slippery.png`,
+    ground_normal: `${ASSETS_BASE_PATH}/background/ground_normal.png`,
+    ground_cracked: `${ASSETS_BASE_PATH}/background/ground_cracked.png`,
+    ground_wet: `${ASSETS_BASE_PATH}/background/ground_wet.png`,
+    ground_slippery: `${ASSETS_BASE_PATH}/background/ground_slippery.png`,
     ui_avatar_frame: `${ASSETS_BASE_PATH}/ui/avatar_frame.png`,
     ui_heart_full: `${ASSETS_BASE_PATH}/ui/heart_full.png`,
     ui_heart_empty: `${ASSETS_BASE_PATH}/ui/heart_empty.png`,
@@ -260,7 +260,8 @@ export const useSpriteLoader = (): SpriteLoaderReturn => {
     ) => {
         const img = spriteCache.current.get(`ground_${groundType}`);
         if (!img) {
-            ctx.fillStyle = '#8B4513';
+            console.warn(`Ground sprite not found: ground_${groundType}`);
+            ctx.fillStyle = '#8B5E3C';
             ctx.fillRect(x, y, width, height);
             return;
         }
@@ -277,6 +278,7 @@ export const useSpriteLoader = (): SpriteLoaderReturn => {
     ) => {
         const img = spriteCache.current.get(`obstacle_${obstacleType}`);
         if (!img) {
+            console.warn(`Obstacle sprite not found: obstacle_${obstacleType}`);
             ctx.fillStyle = '#ff0000';
             ctx.fillRect(x, y, 32 * scale, 32 * scale);
             return;

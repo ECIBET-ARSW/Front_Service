@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { useSpriteLoader } from '../hooks/useSpriteLoader';
-import { GroundType, ObstacleType } from '../config/sprites.config';
+import { ObstacleType } from '../config/sprites.config';
 
 interface Player {
     id: string;
@@ -53,10 +53,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
                                                       }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationRef = useRef<number>();
-    const { drawFrame, drawGroundTile, drawObstacle, getSprite } = useSpriteLoader();
+    const { drawFrame, drawObstacle, getSprite } = useSpriteLoader();
 
-    const GROUND_Y = canvasHeight - 80;
-    const TILE_SIZE = 32;
+    const GROUND_START_Y = canvasHeight - 120;
+    const GROUND_BOTTOM_Y = canvasHeight;
 
     const drawSky = useCallback((ctx: CanvasRenderingContext2D) => {
         const skyImg = getSprite('sky');
@@ -70,36 +70,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
         }
+    }, [canvasWidth, canvasHeight, getSprite]);
 
-        ctx.fillStyle = '#2d5016';
-        ctx.fillRect(0, GROUND_Y - 20, canvasWidth, 20);
-    }, [canvasWidth, canvasHeight, getSprite, GROUND_Y]);
+    const drawGround = useCallback((ctx: CanvasRenderingContext2D) => {
+        const groundHeight = GROUND_BOTTOM_Y - GROUND_START_Y;
 
-    const drawGround = useCallback((ctx: CanvasRenderingContext2D, worldOffset: number) => {
-        if (!gameState?.groundType) return;
+        ctx.fillStyle = '#800080';
+        ctx.fillRect(0, GROUND_START_Y, canvasWidth, groundHeight);
 
-        let groundTypeKey: GroundType = 'normal';
-        switch (gameState.groundType) {
-            case 'normal': groundTypeKey = 'normal'; break;
-            case 'cracked': groundTypeKey = 'cracked'; break;
-            case 'wet': groundTypeKey = 'wet'; break;
-            case 'slippery': groundTypeKey = 'slippery'; break;
-            default: groundTypeKey = 'normal';
-        }
+        ctx.fillStyle = '#9932CC';
+        ctx.fillRect(0, GROUND_START_Y, canvasWidth, 3);
 
-        const tilesNeeded = Math.ceil(canvasWidth / TILE_SIZE) + 2;
-        const startTile = Math.floor(worldOffset / TILE_SIZE);
-
-        for (let i = -1; i < tilesNeeded; i++) {
-            const tileX = (i + startTile) * TILE_SIZE - (worldOffset % TILE_SIZE);
-            if (tileX > -TILE_SIZE && tileX < canvasWidth) {
-                drawGroundTile(groundTypeKey, ctx, tileX, GROUND_Y, TILE_SIZE, TILE_SIZE);
-            }
-        }
-
-        ctx.fillStyle = '#6B4226';
-        ctx.fillRect(0, GROUND_Y + TILE_SIZE - 8, canvasWidth, 8);
-    }, [canvasWidth, gameState?.groundType, drawGroundTile, GROUND_Y, TILE_SIZE]);
+        ctx.fillStyle = '#4B0082';
+        ctx.fillRect(0, GROUND_BOTTOM_Y - 4, canvasWidth, 4);
+    }, [canvasWidth, GROUND_START_Y, GROUND_BOTTOM_Y]);
 
     const drawObstacles = useCallback((ctx: CanvasRenderingContext2D, worldOffset: number) => {
         if (!gameState?.obstacles) return;
@@ -146,7 +130,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
             ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.beginPath();
-            ctx.ellipse(screenX + 20, player.y + 28, 12, 6, 0, 0, Math.PI * 2);
+            ctx.ellipse(screenX + 16, player.y + 28, 12, 6, 0, 0, Math.PI * 2);
             ctx.fill();
 
             drawFrame(spriteKey, player.frameIndex, ctx, screenX, player.y, 1, false);
@@ -155,7 +139,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             ctx.textAlign = 'center';
             ctx.fillStyle = '#FFFFFF';
             ctx.shadowBlur = 0;
-            ctx.fillText(player.name, screenX + 20, player.y - 8);
+            ctx.fillText(player.name, screenX + 16, player.y - 8);
 
             for (let i = 0; i < Math.min(player.lives, 5); i++) {
                 const heartImg = getSprite('ui_heart_full');
@@ -227,6 +211,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.font = 'bold 14px "Courier New", monospace';
         ctx.fillStyle = '#AAAAAA';
         ctx.fillText(`${gameState.players?.length || 0} players`, canvasWidth - 20, 30);
+
+        const aliveCount = gameState.players?.filter(p => p.isAlive).length || 0;
+        ctx.fillStyle = aliveCount > 1 ? '#44FF44' : '#FF4444';
+        ctx.fillText(`Alive: ${aliveCount}`, canvasWidth - 20, 55);
+
         ctx.textAlign = 'left';
     }, [gameState, canvasWidth, getSprite]);
 
@@ -242,7 +231,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         if (gameState && gameState.players && gameState.players.length > 0) {
             const worldOffset = gameState.worldOffset || 0;
             drawSky(ctx);
-            drawGround(ctx, worldOffset);
+            drawGround(ctx);
             drawObstacles(ctx, worldOffset);
             drawPlayers(ctx, worldOffset);
             drawEffects(ctx, worldOffset);
@@ -256,9 +245,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             ctx.fillText('ESPERANDO PARTIDA...', canvasWidth / 2, canvasHeight / 2 - 30);
             ctx.font = '18px "Courier New", monospace';
             ctx.fillStyle = '#ffd700';
-            ctx.fillText('Presiona W para saltar', canvasWidth / 2, canvasHeight / 2 + 20);
+            ctx.fillText('Presiona D para correr', canvasWidth / 2, canvasHeight / 2 + 20);
             ctx.fillStyle = '#AAAAAA';
-            ctx.fillText('Presiona S para deslizar', canvasWidth / 2, canvasHeight / 2 + 50);
+            ctx.fillText('Presiona W para saltar', canvasWidth / 2, canvasHeight / 2 + 50);
+            ctx.fillStyle = '#888888';
+            ctx.fillText('Presiona S para deslizar', canvasWidth / 2, canvasHeight / 2 + 80);
             ctx.textAlign = 'left';
         }
 

@@ -47,6 +47,7 @@ const FiveInLineGame: React.FC = () => {
     const [gameState, setGameState] = useState<any>(null);
     const [isTogglingReady, setIsTogglingReady] = useState(false);
     const [isCreatingLobby, setIsCreatingLobby] = useState(false);
+    const [gameEndMessage, setGameEndMessage] = useState<string | null>(null);
     const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const clientReadySentRef = useRef<boolean>(false);
@@ -65,6 +66,15 @@ const FiveInLineGame: React.FC = () => {
     useEffect(() => {
         console.log('=== GAME PHASE CHANGED ===', gamePhase);
     }, [gamePhase]);
+
+    useEffect(() => {
+        if (gameEndMessage) {
+            const timer = setTimeout(() => {
+                setGameEndMessage(null);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [gameEndMessage]);
 
     useEffect(() => {
         return () => {
@@ -172,7 +182,7 @@ const FiveInLineGame: React.FC = () => {
 
         socket.onmessage = (event) => {
             const rawData = event.data;
-            console.log('RAW WEBSOCKET MESSAGE:', rawData);
+            console.log('RAW WEBSOCKET MESSAGE:', rawData.substring(0, 500) + (rawData.length > 500 ? '...' : ''));
 
             try {
                 const data = JSON.parse(rawData);
@@ -213,6 +223,11 @@ const FiveInLineGame: React.FC = () => {
                         console.log('COUNTDOWN_GO received - game starting!');
                         setCountdownActive(false);
                         setGamePhase('playing');
+                        break;
+
+                    case 'GAME_END_MESSAGE':
+                        console.log('GAME_END_MESSAGE received:', data.message);
+                        setGameEndMessage(data.message);
                         break;
 
                     case 'GAME_END':
@@ -392,6 +407,7 @@ const FiveInLineGame: React.FC = () => {
             setWs(null);
         }
         clientReadySentRef.current = false;
+        setGameEndMessage(null);
     };
 
     const changeColor = (color: string) => {
@@ -417,6 +433,7 @@ const FiveInLineGame: React.FC = () => {
             setWs(null);
         }
         clientReadySentRef.current = false;
+        setGameEndMessage(null);
     };
 
     const handlePlayAgain = () => {
@@ -586,9 +603,38 @@ const FiveInLineGame: React.FC = () => {
                 <GameResultModal results={results} onClose={handleCloseResults} onPlayAgain={handlePlayAgain} />
             )}
 
+            {gameEndMessage && (
+                <div style={{
+                    position: 'fixed',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    backgroundColor: 'rgba(0,0,0,0.9)',
+                    color: '#FFD700',
+                    padding: '20px 40px',
+                    borderRadius: '15px',
+                    fontSize: '28px',
+                    fontWeight: 'bold',
+                    fontFamily: '"Courier New", monospace',
+                    textAlign: 'center',
+                    zIndex: 2000,
+                    border: '3px solid #FFD700',
+                    boxShadow: '0 0 30px rgba(255,215,0,0.5)',
+                    animation: 'fadeInOut 3s ease-in-out'
+                }}>
+                    {gameEndMessage}
+                </div>
+            )}
+
             <style>{`
                 .loader { width: 50px; height: 50px; border: 5px solid #333; border-top: 5px solid #ffd700; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
                 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                @keyframes fadeInOut { 
+                    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+                    15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                    85% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+                }
             `}</style>
         </div>
     );
