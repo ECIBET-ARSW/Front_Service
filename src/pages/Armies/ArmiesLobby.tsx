@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
 import { createLobby, getLobbies, joinLobby, type Lobby } from '../../services/armies/armiesApi'
 
-const WALLETS_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8079'
+const WALLETS_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8082'
 const MIN_BALANCE = 1000
 
 export default function ArmiesLobby() {

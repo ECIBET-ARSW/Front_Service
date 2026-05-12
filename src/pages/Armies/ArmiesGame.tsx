@@ -19,13 +19,26 @@ export default function ArmiesGame() {
   const lobbyId = localStorage.getItem('armiesLobbyId') || ''
   const userId = user?.id || ''
 
+  const ARMIES_BASE_URL = import.meta.env.VITE_ARMIES_URL ?? 'http://localhost:8094'
+
   useEffect(() => {
     if (!lobbyId || !userId) {
       navigate('/games/armies')
       return
     }
 
-    // Conectar WebSocket
+    async function fetchInitialState() {
+      try {
+        const res = await fetch(`${ARMIES_BASE_URL}/api/games/armies/lobbies/${lobbyId}/state`)
+        if (res.ok) {
+          const data: GameState = await res.json()
+          setGameState(data)
+          handleGameStateUpdate(data)
+        }
+      } catch (_) {}
+    }
+    fetchInitialState()
+
     const ws = new WebSocket(`${ARMIES_WS_URL}/ws/armies?lobbyId=${lobbyId}`)
 
     ws.onopen = () => {
@@ -168,7 +181,7 @@ export default function ArmiesGame() {
     )
   }
 
-  const isHost = gameState.players[0]?.userId === userId
+  const isHost = gameState.hostId === userId
   const player1 = gameState.players[0]
   const player2 = gameState.players[1]
 
@@ -202,7 +215,7 @@ export default function ArmiesGame() {
 
         <div style={s.centerInfo}>
           <div style={s.roundNumber}>ROUND {gameState.currentRound}</div>
-          <div style={s.pot}>POZO: ${gameState.pot.toLocaleString()}</div>
+          <div style={s.pot}>POZO: ${(gameState.pot ?? 0).toLocaleString()}</div>
         </div>
 
         <div style={s.playerInfo}>
