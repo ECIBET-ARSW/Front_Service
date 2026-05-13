@@ -6,6 +6,7 @@ import { GameHUD } from '../../games/FiveInLine/components/GameHUD';
 import { CountdownOverlay } from '../../games/FiveInLine/components/CountdownOverlay';
 import { useSpriteLoader } from '../../games/FiveInLine/hooks/useSpriteLoader';
 import { useKeyboardControls, ControlAction } from '../../games/FiveInLine/hooks/useKeyboardControls';
+import SockJS from 'sockjs-client';
 
 type GamePhase = 'selector' | 'waiting' | 'countdown' | 'playing' | 'result';
 
@@ -26,7 +27,7 @@ interface LobbyPlayer {
 }
 
 const API_BASE = 'http://localhost:8080/api';
-const WS_BASE = 'ws://localhost:8080/ws';
+const WS_BASE = 'http://localhost:8080/ws';
 
 const FiveInLineGame: React.FC = () => {
     const [gamePhase, setGamePhase] = useState<GamePhase>('selector');
@@ -43,7 +44,7 @@ const FiveInLineGame: React.FC = () => {
     const [joinCode, setJoinCode] = useState<string>('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [takenColors, setTakenColors] = useState<string[]>([]);
-    const [ws, setWs] = useState<WebSocket | null>(null);
+    const [ws, setWs] = useState<any>(null);
     const [gameState, setGameState] = useState<any>(null);
     const [isTogglingReady, setIsTogglingReady] = useState(false);
     const [isCreatingLobby, setIsCreatingLobby] = useState(false);
@@ -52,6 +53,7 @@ const FiveInLineGame: React.FC = () => {
     const pingIntervalRef = useRef<number | null>(null);
     const clientReadySentRef = useRef<boolean>(false);
     const actionCountRef = useRef<number>(0);
+    const isConnectedRef = useRef<boolean>(false);
 
     const { isLoading } = useSpriteLoader();
 
@@ -87,15 +89,6 @@ const FiveInLineGame: React.FC = () => {
         };
     }, []);
 
-    useEffect(() => {
-        if (gamePhase === 'waiting' && ws && ws.readyState === WebSocket.OPEN && !isHost && !clientReadySentRef.current) {
-            const readyMsg = JSON.stringify({ type: 'CLIENT_READY' });
-            ws.send(readyMsg);
-            clientReadySentRef.current = true;
-            console.log('CLIENT_READY sent for non-host player');
-        }
-    }, [gamePhase, ws, isHost]);
-
     const handleAction = useCallback((action: ControlAction) => {
         actionCountRef.current++;
         console.log(`[${actionCountRef.current}] handleAction called with:`, action, 'gamePhase:', gamePhase, 'ws state:', ws?.readyState);
@@ -116,8 +109,6 @@ const FiveInLineGame: React.FC = () => {
                 ws.send(message);
                 console.log(`[${actionCountRef.current}] ACTION SENT:`, actionStr);
             }
-        } else {
-            console.log(`[${actionCountRef.current}] Cannot send action - gamePhase:`, gamePhase, 'ws readyState:', ws?.readyState);
         }
     }, [gamePhase, ws]);
 
@@ -162,33 +153,52 @@ const FiveInLineGame: React.FC = () => {
     const connectWebSocket = useCallback((lobbyCode: string) => {
         if (!lobbyCode) return;
 
-        const wsUrl = `${WS_BASE}?userId=${userId}&lobbyCode=${lobbyCode}`;
-        console.log('Connecting WebSocket to:', wsUrl);
+        console.log('Creating SockJS connection to:', WS_BASE);
 
-        const socket = new WebSocket(wsUrl);
+        if (ws) {
+            console.log('Closing existing connection');
+            ws.close();
+        }
+
+        isConnectedRef.current = false;
+        clientReadySentRef.current = false;
+        const socket = new SockJS(WS_BASE);
 
         socket.onopen = () => {
-            console.log('WebSocket connected successfully to lobby:', lobbyCode);
+            console.log('SockJS connection opened');
+
+            const initMsg = JSON.stringify({ type: 'INIT', userId: userId, lobbyCode: lobbyCode });
+            socket.send(initMsg);
+            console.log('INIT message sent:', initMsg);
+
             if (pingIntervalRef.current) {
                 clearInterval(pingIntervalRef.current);
             }
             pingIntervalRef.current = setInterval(() => {
                 if (socket.readyState === WebSocket.OPEN) {
                     socket.send(JSON.stringify({ type: 'PING' }));
-                    console.log('PING sent');
                 }
-            }, 10000);
+            }, 15000);
         };
 
         socket.onmessage = (event) => {
             const rawData = event.data;
-            console.log('RAW WEBSOCKET MESSAGE:', rawData.substring(0, 500) + (rawData.length > 500 ? '...' : ''));
+            console.log('RAW SOCKJS MESSAGE:', rawData);
+
+            if (rawData === 'h') {
+                return;
+            }
 
             try {
                 const data = JSON.parse(rawData);
                 console.log('PARSED MESSAGE - type:', data.type);
 
                 switch (data.type) {
+                    case 'INIT_ACK':
+                        console.log('INIT_ACK received - connection confirmed');
+                        isConnectedRef.current = true;
+                        break;
+
                     case 'LOBBY_UPDATE':
                         console.log('LOBBY_UPDATE received');
                         const playersList: LobbyPlayer[] = (data.players || []).map((p: any) => ({
@@ -213,6 +223,12 @@ const FiveInLineGame: React.FC = () => {
                         console.log('COUNTDOWN_START received with count:', data.count);
                         setCountdownActive(true);
                         setGamePhase('countdown');
+                        if (socket.readyState === WebSocket.OPEN && !clientReadySentRef.current) {
+                            const readyMsg = JSON.stringify({ type: 'CLIENT_READY' });
+                            socket.send(readyMsg);
+                            clientReadySentRef.current = true;
+                            console.log('CLIENT_READY sent after COUNTDOWN_START');
+                        }
                         break;
 
                     case 'COUNTDOWN_TICK':
@@ -237,7 +253,7 @@ const FiveInLineGame: React.FC = () => {
                         break;
 
                     case 'PONG':
-                        console.log('PONG received - connection alive');
+                        console.log('PONG received');
                         break;
 
                     default:
@@ -249,19 +265,21 @@ const FiveInLineGame: React.FC = () => {
         };
 
         socket.onclose = (event) => {
-            console.log('WebSocket closed - code:', event.code, 'reason:', event.reason);
+            console.log('SockJS closed - code:', event.code, 'reason:', event.reason);
+            isConnectedRef.current = false;
+            clientReadySentRef.current = false;
             if (pingIntervalRef.current) {
                 clearInterval(pingIntervalRef.current);
             }
         };
 
         socket.onerror = (error) => {
-            console.error('WebSocket error:', error);
+            console.error('SockJS error:', error);
         };
 
         setWs(socket);
         return socket;
-    }, [userId]);
+    }, [userId, ws]);
 
     const createLobby = async () => {
         if (isCreatingLobby) {
@@ -357,6 +375,8 @@ const FiveInLineGame: React.FC = () => {
     };
 
     const toggleReady = () => {
+        console.log('toggleReady called - isHost:', isHost, 'ws state:', ws?.readyState, 'connected:', isConnectedRef.current);
+
         if (isHost) {
             console.log('Host cannot toggle ready');
             return;
@@ -367,32 +387,35 @@ const FiveInLineGame: React.FC = () => {
             return;
         }
 
-        if (ws && ws.readyState === WebSocket.OPEN) {
+        if (ws && ws.readyState === WebSocket.OPEN && isConnectedRef.current) {
             setIsTogglingReady(true);
             const message = JSON.stringify({ type: 'TOGGLE_READY' });
             ws.send(message);
             console.log('TOGGLE_READY sent');
             setTimeout(() => setIsTogglingReady(false), 1000);
         } else {
-            console.log('WebSocket not open, state:', ws?.readyState);
+            console.log('WebSocket not open, state:', ws?.readyState, 'connected:', isConnectedRef.current);
         }
     };
 
     const startGame = () => {
-        if (ws && ws.readyState === WebSocket.OPEN && isHost && roomCode) {
+        console.log('startGame called - isHost:', isHost, 'roomCode:', roomCode, 'ws state:', ws?.readyState, 'connected:', isConnectedRef.current);
+
+        if (ws && ws.readyState === WebSocket.OPEN && isHost && roomCode && isConnectedRef.current) {
             const startMsg = JSON.stringify({ type: 'START_GAME', lobbyCode: roomCode });
             ws.send(startMsg);
             console.log('START_GAME sent to lobby:', roomCode);
 
             setTimeout(() => {
-                if (ws && ws.readyState === WebSocket.OPEN) {
+                if (ws && ws.readyState === WebSocket.OPEN && !clientReadySentRef.current) {
                     const readyMsg = JSON.stringify({ type: 'CLIENT_READY' });
                     ws.send(readyMsg);
+                    clientReadySentRef.current = true;
                     console.log('CLIENT_READY sent for host');
                 }
-            }, 100);
+            }, 500);
         } else {
-            console.log('Cannot start game - ws state:', ws?.readyState, 'isHost:', isHost);
+            console.log('Cannot start game - ws state:', ws?.readyState, 'isHost:', isHost, 'connected:', isConnectedRef.current);
         }
     };
 
@@ -407,12 +430,13 @@ const FiveInLineGame: React.FC = () => {
             setWs(null);
         }
         clientReadySentRef.current = false;
+        isConnectedRef.current = false;
         setGameEndMessage(null);
     };
 
     const changeColor = (color: string) => {
         setSelectedColor(color);
-        if (ws && ws.readyState === WebSocket.OPEN && roomCode) {
+        if (ws && ws.readyState === WebSocket.OPEN && roomCode && isConnectedRef.current) {
             ws.send(JSON.stringify({ type: 'CHANGE_COLOR', color: color.toUpperCase() }));
             console.log('CHANGE_COLOR sent:', color);
         }
@@ -433,6 +457,7 @@ const FiveInLineGame: React.FC = () => {
             setWs(null);
         }
         clientReadySentRef.current = false;
+        isConnectedRef.current = false;
         setGameEndMessage(null);
     };
 
