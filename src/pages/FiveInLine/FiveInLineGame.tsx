@@ -12,7 +12,7 @@ type GamePhase = 'selector' | 'waiting' | 'countdown' | 'playing' | 'result';
 
 interface PlayerResult {
     playerId: string;
-    playerName: string;
+    playerName: string; 
     position: number;
     coinsEarned: number;
     color: string;
