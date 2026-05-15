@@ -26,8 +26,8 @@ interface LobbyPlayer {
     isHost: boolean;
 }
 
-const API_BASE = 'http://localhost:8080/api';
-const WS_BASE = 'http://localhost:8080/ws';
+const API_BASE = `${import.meta.env.VITE_FIVELINE_URL ?? 'http://localhost:8080'}/api`;
+const WS_BASE = `${import.meta.env.VITE_FIVELINE_URL?.replace('https://', 'wss://').replace('http://', 'ws://') ?? 'http://localhost:8080'}/ws`;
 
 const FiveInLineGame: React.FC = () => {
     const [gamePhase, setGamePhase] = useState<GamePhase>('selector');

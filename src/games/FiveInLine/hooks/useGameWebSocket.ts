@@ -49,7 +49,8 @@ export const useGameWebSocket = () => {
 
         roomCodeRef.current = lobbyCode;
 
-        const ws = new WebSocket(`ws://localhost:8080/ws-game/websocket?userId=${userId}&lobbyCode=${lobbyCode}`);
+        const FIVELINE_WS_URL = import.meta.env.VITE_FIVELINE_URL?.replace('https://', 'wss://').replace('http://', 'ws://') ?? 'ws://localhost:8080';
+        const ws = new WebSocket(`${FIVELINE_WS_URL}/ws-game/websocket?userId=${userId}&lobbyCode=${lobbyCode}`);
         wsRef.current = ws;
 
         ws.onopen = () => {
@@ -123,7 +124,8 @@ export const useGameWebSocket = () => {
 
     const fetchLobbyStatus = useCallback(async (lobbyCode: string) => {
         try {
-            const response = await fetch('http://localhost:8080/api/lobbies/public');
+            const FIVELINE_URL = import.meta.env.VITE_FIVELINE_URL ?? 'http://localhost:8080';
+            const response = await fetch(`${FIVELINE_URL}/api/lobbies/public`);
             const lobbies = await response.json();
             const lobby = lobbies.find((l: any) => l.code === lobbyCode);
             if (lobby && lobby.players) {
@@ -205,7 +207,8 @@ export const useGameWebSocket = () => {
         try {
             console.log('Creando lobby:', { userId, username, betAmount, minPlayers, color });
 
-            const response = await fetch('http://localhost:8080/api/lobbies/create', {
+            const FIVELINE_URL = import.meta.env.VITE_FIVELINE_URL ?? 'http://localhost:8080';
+            const response = await fetch(`${FIVELINE_URL}/api/lobbies/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -242,7 +245,8 @@ export const useGameWebSocket = () => {
         try {
             console.log('Uniendo a lobby:', { lobbyCode, userId, username, betAmount, color });
 
-            const response = await fetch('http://localhost:8080/api/lobbies/join', {
+            const FIVELINE_URL = import.meta.env.VITE_FIVELINE_URL ?? 'http://localhost:8080';
+            const response = await fetch(`${FIVELINE_URL}/api/lobbies/join`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -278,7 +282,8 @@ export const useGameWebSocket = () => {
     const startGame = useCallback(async (lobbyCode: string, userId: string) => {
         try {
             console.log('Iniciando partida via HTTP para sala:', lobbyCode);
-            const response = await fetch('http://localhost:8080/api/lobbies/start', {
+            const FIVELINE_URL = import.meta.env.VITE_FIVELINE_URL ?? 'http://localhost:8080';
+            const response = await fetch(`${FIVELINE_URL}/api/lobbies/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

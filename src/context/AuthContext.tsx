@@ -2,10 +2,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 
-// URLs DIRECTAS de los servicios (temporal mientras arreglamos el gateway)
-const AUTH_URL = 'http://localhost:8081';
-const USERS_URL = 'http://localhost:8080';
-const WALLETS_URL = 'http://localhost:8082';
+// URLs de los servicios desde variables de entorno
+const AUTH_URL = import.meta.env.VITE_AUTH_URL ?? 'http://localhost:8081';
+const USERS_URL = import.meta.env.VITE_USERS_URL ?? 'http://localhost:8080';
+const WALLETS_URL = import.meta.env.VITE_WALLETS_URL ?? 'http://localhost:8082';
 
 interface AuthContextType {
     user: User | null;
