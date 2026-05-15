@@ -63,6 +63,7 @@ const Games = () => {
     if (game.id === '2') navigate('/games/poker');
     if (game.id === '3') navigate('/games/liars-bar');
     if (game.id === '4') navigate('/games/armies');
+    if (game.id === '5') navigate('/games/retro');
   };
 
   return (
