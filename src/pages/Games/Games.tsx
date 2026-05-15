@@ -55,7 +55,7 @@ const Games = () => {
       maxPlayers: 1,
       icon: 'RETRO',
       gradient: 'gold',
-      available: false
+      available: true
     }
   ];
 
