@@ -141,15 +141,15 @@ const Sports = () => {
                   {displayEvents.map((event, index) => (
                     <motion.div
                       key={event.id}
-                      className={`match-card ${event.status === 'LIVE' || event.status === 'IN_PROGRESS' ? 'live' : ''}`}
+                      className={`match-card ${event.status === 'LIVE' ? 'live' : ''}`}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}
                     >
                       <div className="match-header">
                         <span className="match-league">{event.competition}</span>
-                        <span className={`match-datetime ${event.status === 'LIVE' || event.status === 'IN_PROGRESS' ? 'live' : ''}`}>
-                          {event.status === 'LIVE' || event.status === 'IN_PROGRESS' ? (
+                        <span className={`match-datetime ${event.status === 'LIVE' ? 'live' : ''}`}>
+                          {event.status === 'LIVE' ? (
                             <>
                               EN VIVO
                               {event.minute && ` | ${event.minute}'`}
@@ -163,8 +163,8 @@ const Sports = () => {
                       </div>
                       <div className="match-teams">
                         <div className="team">{event.homeTeam}</div>
-                        <div className={`vs ${event.status === 'LIVE' || event.status === 'IN_PROGRESS' ? 'live-score' : ''}`}>
-                          {event.status === 'LIVE' || event.status === 'IN_PROGRESS' ? `${event.homeScore ?? 0} - ${event.awayScore ?? 0}` : 'VS'}
+                        <div className={`vs ${event.status === 'LIVE' ? 'live-score' : ''}`}>
+                          {event.status === 'LIVE' ? `${event.homeScore ?? 0} - ${event.awayScore ?? 0}` : 'VS'}
                         </div>
                         <div className="team">{event.awayTeam}</div>
                       </div>
