@@ -39,6 +39,10 @@
   cursor: pointer;
   font-weight: 500;
   transition: all 0.3s;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .filter-btn:hover,
@@ -46,6 +50,25 @@
   background: var(--primary);
   color: var(--dark);
   border-color: var(--primary);
+}
+
+.live-badge {
+  background: #ff4444;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  font-weight: bold;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 .sports-content {
@@ -76,6 +99,26 @@
   padding: 1.5rem;
   border: 2px solid transparent;
   transition: all 0.3s;
+  position: relative;
+}
+
+.match-card.live {
+  border-color: #ff4444;
+  box-shadow: 0 0 20px rgba(255, 68, 68, 0.3);
+}
+
+.match-card.live::before {
+  content: '🔴 EN VIVO';
+  position: absolute;
+  top: -12px;
+  right: 20px;
+  background: #ff4444;
+  color: white;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  animation: pulse 2s infinite;
 }
 
 .match-card:hover {
@@ -98,6 +141,36 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
+.match-datetime.live,
+.match-datetime.in_progress {
+  color: #ff4444;
+  font-weight: bold;
+  animation: blink 1.5s infinite;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.match-datetime.live::before,
+.match-datetime.in_progress::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: #ff4444;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .match-teams {
   display: flex;
   align-items: center;
@@ -118,6 +191,15 @@
   color: rgba(255, 255, 255, 0.5);
   font-weight: bold;
   font-size: 0.9rem;
+}
+
+.vs.live-score {
+  color: #ff4444;
+  font-size: 1.5rem;
+  background: rgba(255, 68, 68, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: 2px solid #ff4444;
 }
 
 .match-odds {
@@ -333,6 +415,21 @@
   text-align: center;
   padding: 3rem;
   color: rgba(255, 255, 255, 0.5);
+}
+
+.no-matches.live-empty {
+  background: rgba(255, 68, 68, 0.05);
+  border: 2px dashed rgba(255, 68, 68, 0.3);
+  border-radius: 15px;
+  padding: 4rem 2rem;
+}
+
+.no-matches.live-empty::before {
+  content: '🔴';
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 1rem;
+  opacity: 0.5;
 }
 
 @media (max-width: 1024px) {
