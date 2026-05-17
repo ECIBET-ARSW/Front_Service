@@ -12,7 +12,7 @@ type GamePhase = 'selector' | 'waiting' | 'countdown' | 'playing' | 'result';
 
 interface PlayerResult {
     playerId: string;
-    playerName: string; 
+    playerName: string;
     position: number;
     coinsEarned: number;
     color: string;
@@ -26,8 +26,14 @@ interface LobbyPlayer {
     isHost: boolean;
 }
 
-const API_BASE = `${import.meta.env.VITE_FIVELINE_URL ?? 'http://localhost:8080'}/api`;
-const WS_BASE = `${import.meta.env.VITE_FIVELINE_WS?.replace('https://', 'wss://').replace('http://', 'ws://') ?? 'http://localhost:8080'}/ws`;
+// Configuración por entorno
+const isProduction = import.meta.env.PROD;
+const API_BASE = isProduction
+    ? 'https://5inline.duckdns.org/api'
+    : 'http://localhost:8080/api';
+const WS_BASE = isProduction
+    ? 'https://5inline.duckdns.org/ws'
+    : 'http://localhost:8080/ws';
 
 const FiveInLineGame: React.FC = () => {
     const [gamePhase, setGamePhase] = useState<GamePhase>('selector');
@@ -49,8 +55,8 @@ const FiveInLineGame: React.FC = () => {
     const [isTogglingReady, setIsTogglingReady] = useState(false);
     const [isCreatingLobby, setIsCreatingLobby] = useState(false);
     const [gameEndMessage, setGameEndMessage] = useState<string | null>(null);
-    const countdownIntervalRef = useRef<number | null>(null);
-    const pingIntervalRef = useRef<number | null>(null);
+    const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const clientReadySentRef = useRef<boolean>(false);
     const actionCountRef = useRef<number>(0);
     const isConnectedRef = useRef<boolean>(false);
