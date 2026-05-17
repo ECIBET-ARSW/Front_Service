@@ -26,8 +26,7 @@ interface LobbyPlayer {
     isHost: boolean;
 }
 
-// Configuración por entorno
-const isProduction = import.meta.env.PROD;
+const isProduction = (import.meta as any).env?.PROD ?? false;
 const API_BASE = isProduction
     ? 'https://5inline.duckdns.org/api'
     : 'http://localhost:8080/api';
@@ -55,8 +54,8 @@ const FiveInLineGame: React.FC = () => {
     const [isTogglingReady, setIsTogglingReady] = useState(false);
     const [isCreatingLobby, setIsCreatingLobby] = useState(false);
     const [gameEndMessage, setGameEndMessage] = useState<string | null>(null);
-    const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
-    const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const countdownIntervalRef = useRef<any>(null);
+    const pingIntervalRef = useRef<any>(null);
     const clientReadySentRef = useRef<boolean>(false);
     const actionCountRef = useRef<number>(0);
     const isConnectedRef = useRef<boolean>(false);
@@ -187,7 +186,7 @@ const FiveInLineGame: React.FC = () => {
             }, 15000);
         };
 
-        socket.onmessage = (event) => {
+        socket.onmessage = (event: any) => {
             const rawData = event.data;
             console.log('RAW SOCKJS MESSAGE:', rawData);
 
@@ -270,7 +269,7 @@ const FiveInLineGame: React.FC = () => {
             }
         };
 
-        socket.onclose = (event) => {
+        socket.onclose = (event: any) => {
             console.log('SockJS closed - code:', event.code, 'reason:', event.reason);
             isConnectedRef.current = false;
             clientReadySentRef.current = false;
@@ -279,7 +278,7 @@ const FiveInLineGame: React.FC = () => {
             }
         };
 
-        socket.onerror = (error) => {
+        socket.onerror = (error: any) => {
             console.error('SockJS error:', error);
         };
 
