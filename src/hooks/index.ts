@@ -6,4 +6,4 @@ export { useLobby, useGameRoom } from './useRussianRoulette';
 export { useFiveLine } from './useFiveLine';
 export { useBetting } from './useBetting';
 export { useNotification } from './useNotification';
-export { useAuth } from '../context/AuthContext';
+export { useAuth } from '../context/AuthContext'; 
