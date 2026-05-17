@@ -108,7 +108,7 @@
 }
 
 .match-card.live::before {
-  content: '🔴 EN VIVO';
+  content: 'EN VIVO';
   position: absolute;
   top: -12px;
   right: 20px;
@@ -423,7 +423,7 @@
 }
 
 .no-matches.live-empty::before {
-  content: '🔴';
+  content: '';
   font-size: 3rem;
   display: block;
   margin-bottom: 1rem;

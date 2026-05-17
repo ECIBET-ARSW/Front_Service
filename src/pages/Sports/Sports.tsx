@@ -86,7 +86,7 @@ const Sports = () => {
             className={`filter-btn ${activeTab === tab ? 'active' : ''}`}
             onClick={() => setActiveTab(tab)}
           >
-            {tab === 'today' ? '📅 Hoy' : tab === 'live' ? '🔴 En Vivo' : '📋 Mis Apuestas'}
+            {tab === 'today' ? 'Hoy' : tab === 'live' ? 'En Vivo' : 'Mis Apuestas'}
             {tab === 'live' && liveEvents.length > 0 && (
               <span className="live-badge">{liveEvents.length}</span>
             )}
