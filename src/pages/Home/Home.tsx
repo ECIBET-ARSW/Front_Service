@@ -13,16 +13,6 @@ const Home = () => {
   // Subset of games shown on the landing page as a preview
   const featuredGames: Game[] = [
     {
-      id: '1',
-      name: 'Ruleta Clásica',
-      description: 'La clásica ruleta de casino con apuestas múltiples',
-      minBet: 10,
-      maxPlayers: 8,
-      image: '/img/Roulette.jpg',
-      gradient: '1',
-      available: false
-    },
-    {
       id: '2',
       name: 'Poker Texas',
       description: 'Poker clásico con hasta 6 jugadores por mesa',
@@ -30,7 +20,7 @@ const Home = () => {
       maxPlayers: 6,
       image: '/img/Poker.jpg',
       gradient: '2',
-      available: false
+      available: true
     },
     {
       id: '3',
@@ -40,7 +30,17 @@ const Home = () => {
       maxPlayers: 4,
       image: '/img/Russian Roulette.jpg',
       gradient: '3',
-      available: false
+      available: true
+    },
+    {
+      id: '5',
+      name: '5InLine',
+      description: 'Corre, salta y esquiva obstáculos en este juego retro',
+      minBet: 25,
+      maxPlayers: 5,
+      image: '/img/5inline.jpg',
+      gradient: 'gold',
+      available: true
     }
   ];
 
