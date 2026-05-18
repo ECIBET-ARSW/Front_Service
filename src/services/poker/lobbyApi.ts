@@ -12,8 +12,8 @@ async function req(method: string, path: string, body?: object) {
   return json.data
 }
 
-export const createLobby = ({ playerId, playerName, credits = 10000 }: { playerId: string; playerName: string; credits?: number }) =>
-  req('POST', '/lobby', { playerId, playerName, credits })
+export const createLobby = ({ playerId, playerName, credits = 10000, maxBet = 0 }: { playerId: string; playerName: string; credits?: number; maxBet?: number }) =>
+  req('POST', '/lobby', { playerId, playerName, credits, maxBet })
 
 export const getLobbies = () =>
   req('GET', '/lobby')
