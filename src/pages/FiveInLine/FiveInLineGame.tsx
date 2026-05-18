@@ -27,16 +27,12 @@ interface LobbyPlayer {
 }
 
 const isProduction = (import.meta as any).env?.PROD ?? false;
-
-// URLs correctas para el backend
 const API_BASE = isProduction
     ? 'https://5inline.duckdns.org/api'
     : 'http://localhost:8080/api';
-
-// IMPORTANTE: SockJS usa http/https, NO ws/wss
 const WS_BASE = isProduction
-    ? 'https://5inline.duckdns.org/ws-game/websocket'
-    : 'http://localhost:8080/ws-game/websocket';
+    ? 'wss://5inline.duckdns.org/ws'
+    : 'ws://localhost:8080/ws';
 
 const FiveInLineGame: React.FC = () => {
     const [gamePhase, setGamePhase] = useState<GamePhase>('selector');
@@ -53,7 +49,7 @@ const FiveInLineGame: React.FC = () => {
     const [joinCode, setJoinCode] = useState<string>('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [takenColors, setTakenColors] = useState<string[]>([]);
-    const [ws, setWs] = useState<any>(null);
+    const [ws, setWs] = useState<WebSocket | null>(null);
     const [gameState, setGameState] = useState<any>(null);
     const [isTogglingReady, setIsTogglingReady] = useState(false);
     const [isCreatingLobby, setIsCreatingLobby] = useState(false);
@@ -172,8 +168,6 @@ const FiveInLineGame: React.FC = () => {
 
         isConnectedRef.current = false;
         clientReadySentRef.current = false;
-
-        // Usar WebSocket nativo (no SockJS) para simplificar
         const socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
@@ -186,6 +180,7 @@ const FiveInLineGame: React.FC = () => {
             pingIntervalRef.current = setInterval(() => {
                 if (socket.readyState === WebSocket.OPEN) {
                     socket.send(JSON.stringify({ type: 'PING' }));
+                    console.log('PING sent');
                 }
             }, 15000);
         };
