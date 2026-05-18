@@ -105,10 +105,10 @@ const PokerLobby = () => {
     <div className="lobby-page">
       <div className="lobby-header">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/games')}
           style={{ position: 'absolute', left: 0, top: 0, background: 'transparent', border: '1px solid #555', color: '#555', padding: '6px 14px', borderRadius: 2, cursor: 'pointer', fontFamily: "'Courier New', monospace", fontSize: '0.75rem', letterSpacing: 1 }}
         >
-          ← Inicio
+          ← Juegos
         </button>
         <motion.h1 className="lobby-title" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
           POKER
