@@ -58,6 +58,7 @@ const FiveInLineGame: React.FC = () => {
     const clientReadySentRef = useRef<boolean>(false);
     const actionCountRef = useRef<number>(0);
     const isConnectedRef = useRef<boolean>(false);
+    const currentRoomCodeRef = useRef<string | null>(null);
 
     const { isLoading } = useSpriteLoader();
 
@@ -96,7 +97,7 @@ const FiveInLineGame: React.FC = () => {
     const handleAction = useCallback((action: ControlAction) => {
         actionCountRef.current++;
 
-        if (gamePhase === 'playing' && ws && ws.readyState === WebSocket.OPEN && roomCode) {
+        if (gamePhase === 'playing' && ws && ws.readyState === WebSocket.OPEN) {
             let actionStr = '';
             if (action === 'jump') {
                 actionStr = 'jump';
@@ -111,15 +112,13 @@ const FiveInLineGame: React.FC = () => {
                 const message = JSON.stringify({
                     type: 'PLAYER_ACTION',
                     action: actionStr,
-                    timestamp: Date.now(),
-                    userId: userId,
-                    lobbyCode: roomCode
+                    timestamp: Date.now()
                 });
                 ws.send(message);
                 console.log(`ACTION SENT: ${actionStr}`);
             }
         }
-    }, [gamePhase, ws, userId, roomCode]);
+    }, [gamePhase, ws]);
 
     useKeyboardControls({
         onAction: handleAction,
@@ -159,22 +158,6 @@ const FiveInLineGame: React.FC = () => {
         }
     }, [gamePhase, roomCode, fetchLobbyStatus]);
 
-    const sendMessage = useCallback((type: string, additionalData?: any) => {
-        if (ws && ws.readyState === WebSocket.OPEN && roomCode) {
-            const message = JSON.stringify({
-                type,
-                lobbyCode: roomCode,
-                userId: userId,
-                ...additionalData
-            });
-            ws.send(message);
-            console.log(`Message sent: ${type}`);
-            return true;
-        }
-        console.log(`Cannot send ${type}, WebSocket state: ${ws?.readyState}`);
-        return false;
-    }, [ws, roomCode, userId]);
-
     const connectWebSocket = useCallback((lobbyCode: string) => {
         if (!lobbyCode) return;
 
@@ -186,20 +169,21 @@ const FiveInLineGame: React.FC = () => {
             ws.close();
         }
 
+        currentRoomCodeRef.current = lobbyCode;
         isConnectedRef.current = false;
-        clientReadySentRef.current = false;
+
         const socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
-            console.log('WebSocket connected successfully to lobby:', lobbyCode);
+            console.log(`WebSocket connected to lobby: ${lobbyCode}`);
             isConnectedRef.current = true;
 
             if (pingIntervalRef.current) {
                 clearInterval(pingIntervalRef.current);
             }
             pingIntervalRef.current = setInterval(() => {
-                if (socket.readyState === WebSocket.OPEN && roomCode) {
-                    socket.send(JSON.stringify({ type: 'PING', lobbyCode: roomCode, userId: userId }));
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ type: 'PING' }));
                 }
             }, 15000);
         };
@@ -272,7 +256,7 @@ const FiveInLineGame: React.FC = () => {
         };
 
         socket.onclose = (event) => {
-            console.log('WebSocket closed - code:', event.code, 'reason:', event.reason);
+            console.log(`WebSocket closed for lobby ${lobbyCode} - code: ${event.code}`);
             isConnectedRef.current = false;
             if (pingIntervalRef.current) {
                 clearInterval(pingIntervalRef.current);
@@ -285,7 +269,7 @@ const FiveInLineGame: React.FC = () => {
 
         setWs(socket);
         return socket;
-    }, [userId, ws, roomCode]);
+    }, [userId, ws]);
 
     const createLobby = async () => {
         if (isCreatingLobby) {
@@ -395,10 +379,12 @@ const FiveInLineGame: React.FC = () => {
 
         if (ws && ws.readyState === WebSocket.OPEN && isConnectedRef.current) {
             setIsTogglingReady(true);
-            sendMessage('TOGGLE_READY');
+            const message = JSON.stringify({ type: 'TOGGLE_READY' });
+            ws.send(message);
+            console.log('TOGGLE_READY sent');
             setTimeout(() => setIsTogglingReady(false), 1000);
         } else {
-            console.log('WebSocket not open, state:', ws?.readyState, 'connected:', isConnectedRef.current);
+            console.log('WebSocket not open - state:', ws?.readyState, 'connected:', isConnectedRef.current);
         }
     };
 
@@ -406,7 +392,9 @@ const FiveInLineGame: React.FC = () => {
         console.log('startGame called - isHost:', isHost, 'roomCode:', roomCode, 'ws state:', ws?.readyState, 'connected:', isConnectedRef.current);
 
         if (ws && ws.readyState === WebSocket.OPEN && isHost && roomCode && isConnectedRef.current) {
-            sendMessage('START_GAME', { lobbyCode: roomCode });
+            const message = JSON.stringify({ type: 'START_GAME', lobbyCode: roomCode });
+            ws.send(message);
+            console.log('START_GAME sent to lobby:', roomCode);
         } else {
             console.log('Cannot start game - ws state:', ws?.readyState, 'isHost:', isHost, 'connected:', isConnectedRef.current);
         }
@@ -414,7 +402,8 @@ const FiveInLineGame: React.FC = () => {
 
     const leaveLobby = () => {
         if (ws && ws.readyState === WebSocket.OPEN) {
-            sendMessage('LEAVE_ROOM');
+            const message = JSON.stringify({ type: 'LEAVE_ROOM', lobbyCode: roomCode });
+            ws.send(message);
         }
         setRoomCode(null);
         setGamePhase('selector');
@@ -425,12 +414,14 @@ const FiveInLineGame: React.FC = () => {
         clientReadySentRef.current = false;
         isConnectedRef.current = false;
         setGameEndMessage(null);
+        currentRoomCodeRef.current = null;
     };
 
     const changeColor = (color: string) => {
         setSelectedColor(color);
         if (ws && ws.readyState === WebSocket.OPEN && roomCode && isConnectedRef.current) {
-            sendMessage('CHANGE_COLOR', { color: color.toUpperCase() });
+            const message = JSON.stringify({ type: 'CHANGE_COLOR', color: color.toUpperCase() });
+            ws.send(message);
             console.log('CHANGE_COLOR sent:', color);
         }
     };
@@ -452,6 +443,7 @@ const FiveInLineGame: React.FC = () => {
         clientReadySentRef.current = false;
         isConnectedRef.current = false;
         setGameEndMessage(null);
+        currentRoomCodeRef.current = null;
     };
 
     const handlePlayAgain = () => {
