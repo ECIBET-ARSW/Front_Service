@@ -29,9 +29,11 @@ const isProduction = (import.meta as any).env?.PROD ?? false;
 const API_BASE = isProduction
     ? 'https://5inline.duckdns.org/api'
     : 'http://localhost:8080/api';
+
+// Probar diferentes URLs de WebSocket
 const WS_BASE = isProduction
     ? 'wss://5inline.duckdns.org/ws'
-    : 'ws://localhost:8080/ws';
+    : 'ws://localhost:8080/ws';  // Cambia a /ws-game/websocket si no funciona
 
 const FiveInLineGame: React.FC = () => {
     const [gamePhase, setGamePhase] = useState<GamePhase>('selector');
@@ -58,7 +60,6 @@ const FiveInLineGame: React.FC = () => {
     const clientReadySentRef = useRef<boolean>(false);
     const actionCountRef = useRef<number>(0);
     const isConnectedRef = useRef<boolean>(false);
-    const currentRoomCodeRef = useRef<string | null>(null);
 
     const { isLoading } = useSpriteLoader();
 
@@ -161,114 +162,121 @@ const FiveInLineGame: React.FC = () => {
     const connectWebSocket = useCallback((lobbyCode: string) => {
         if (!lobbyCode) return;
 
+        // URL sin query params para probar primero
         const wsUrl = `${WS_BASE}?userId=${userId}&lobbyCode=${lobbyCode}`;
-        console.log('Connecting WebSocket to:', wsUrl);
+        console.log('ATTEMPTING WebSocket connection to:', wsUrl);
 
         if (ws) {
             console.log('Closing existing connection');
             ws.close();
         }
 
-        currentRoomCodeRef.current = lobbyCode;
         isConnectedRef.current = false;
 
-        const socket = new WebSocket(wsUrl);
+        try {
+            const socket = new WebSocket(wsUrl);
 
-        socket.onopen = () => {
-            console.log(`WebSocket connected to lobby: ${lobbyCode}`);
-            isConnectedRef.current = true;
+            socket.onopen = () => {
+                console.log(`✅ WebSocket CONNECTED to lobby: ${lobbyCode}`);
+                isConnectedRef.current = true;
 
-            if (pingIntervalRef.current) {
-                clearInterval(pingIntervalRef.current);
-            }
-            pingIntervalRef.current = setInterval(() => {
-                if (socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({ type: 'PING' }));
+                if (pingIntervalRef.current) {
+                    clearInterval(pingIntervalRef.current);
                 }
-            }, 15000);
-        };
+                pingIntervalRef.current = setInterval(() => {
+                    if (socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({ type: 'PING' }));
+                        console.log('PING sent');
+                    }
+                }, 15000);
+            };
 
-        socket.onmessage = (event) => {
-            const rawData = event.data;
-            console.log('RAW WEBSOCKET MESSAGE:', rawData);
+            socket.onmessage = (event) => {
+                const rawData = event.data;
+                console.log('RAW WEBSOCKET MESSAGE:', rawData);
 
-            try {
-                const data = JSON.parse(rawData);
-                console.log('PARSED MESSAGE - type:', data.type);
+                try {
+                    const data = JSON.parse(rawData);
+                    console.log('PARSED MESSAGE - type:', data.type);
 
-                switch (data.type) {
-                    case 'LOBBY_UPDATE':
-                        console.log('LOBBY_UPDATE received');
-                        const playersList: LobbyPlayer[] = (data.players || []).map((p: any) => ({
-                            userId: p.userId,
-                            username: p.username,
-                            color: p.color,
-                            isReady: p.isReady === true,
-                            isHost: p.userId === data.hostId
-                        }));
-                        setLobbyPlayers(playersList);
-                        setIsHost(data.hostId === userId);
-                        setTakenColors(playersList.map(p => p.color));
-                        break;
+                    switch (data.type) {
+                        case 'LOBBY_UPDATE':
+                            console.log('LOBBY_UPDATE received');
+                            const playersList: LobbyPlayer[] = (data.players || []).map((p: any) => ({
+                                userId: p.userId,
+                                username: p.username,
+                                color: p.color,
+                                isReady: p.isReady === true,
+                                isHost: p.userId === data.hostId
+                            }));
+                            setLobbyPlayers(playersList);
+                            setIsHost(data.hostId === userId);
+                            setTakenColors(playersList.map(p => p.color));
+                            break;
 
-                    case 'GAME_STATE':
-                        console.log('GAME_STATE received - players:', data.players?.length);
-                        setGameState(data);
-                        break;
+                        case 'GAME_STATE':
+                            console.log('GAME_STATE received - players:', data.players?.length);
+                            setGameState(data);
+                            break;
 
-                    case 'COUNTDOWN_START':
-                        console.log('COUNTDOWN_START received');
-                        setCountdownActive(true);
-                        setGamePhase('countdown');
-                        break;
+                        case 'COUNTDOWN_START':
+                            console.log('COUNTDOWN_START received');
+                            setCountdownActive(true);
+                            setGamePhase('countdown');
+                            break;
 
-                    case 'COUNTDOWN_TICK':
-                        console.log('COUNTDOWN_TICK received:', data.count);
-                        break;
+                        case 'COUNTDOWN_TICK':
+                            console.log('COUNTDOWN_TICK received:', data.count);
+                            break;
 
-                    case 'COUNTDOWN_GO':
-                        console.log('COUNTDOWN_GO received - game starting!');
-                        setCountdownActive(false);
-                        setGamePhase('playing');
-                        break;
+                        case 'COUNTDOWN_GO':
+                            console.log('COUNTDOWN_GO received - game starting!');
+                            setCountdownActive(false);
+                            setGamePhase('playing');
+                            break;
 
-                    case 'GAME_END_MESSAGE':
-                        console.log('GAME_END_MESSAGE received:', data.message);
-                        setGameEndMessage(data.message);
-                        break;
+                        case 'GAME_END_MESSAGE':
+                            console.log('GAME_END_MESSAGE received:', data.message);
+                            setGameEndMessage(data.message);
+                            break;
 
-                    case 'GAME_END':
-                        console.log('GAME_END received');
-                        setResults(data.results || []);
-                        setGamePhase('result');
-                        break;
+                        case 'GAME_END':
+                            console.log('GAME_END received');
+                            setResults(data.results || []);
+                            setGamePhase('result');
+                            break;
 
-                    case 'PONG':
-                        console.log('PONG received');
-                        break;
+                        case 'PONG':
+                            console.log('PONG received');
+                            break;
 
-                    default:
-                        console.log('Unknown message type:', data.type);
+                        default:
+                            console.log('Unknown message type:', data.type);
+                    }
+                } catch (e) {
+                    console.error('Error parsing message:', e);
                 }
-            } catch (e) {
-                console.error('Error parsing message:', e);
-            }
-        };
+            };
 
-        socket.onclose = (event) => {
-            console.log(`WebSocket closed for lobby ${lobbyCode} - code: ${event.code}`);
-            isConnectedRef.current = false;
-            if (pingIntervalRef.current) {
-                clearInterval(pingIntervalRef.current);
-            }
-        };
+            socket.onclose = (event) => {
+                console.log(`❌ WebSocket CLOSED for lobby ${lobbyCode} - code: ${event.code}, reason: ${event.reason}`);
+                isConnectedRef.current = false;
+                if (pingIntervalRef.current) {
+                    clearInterval(pingIntervalRef.current);
+                }
+            };
 
-        socket.onerror = (error) => {
-            console.error('WebSocket error:', error);
-        };
+            socket.onerror = (error) => {
+                console.error('❌ WebSocket ERROR:', error);
+                console.error('Failed URL:', wsUrl);
+            };
 
-        setWs(socket);
-        return socket;
+            setWs(socket);
+            return socket;
+        } catch (error) {
+            console.error('Exception creating WebSocket:', error);
+            return null;
+        }
     }, [userId, ws]);
 
     const createLobby = async () => {
@@ -385,6 +393,10 @@ const FiveInLineGame: React.FC = () => {
             setTimeout(() => setIsTogglingReady(false), 1000);
         } else {
             console.log('WebSocket not open - state:', ws?.readyState, 'connected:', isConnectedRef.current);
+            console.log('Try reconnecting...');
+            if (roomCode) {
+                connectWebSocket(roomCode);
+            }
         }
     };
 
@@ -414,7 +426,6 @@ const FiveInLineGame: React.FC = () => {
         clientReadySentRef.current = false;
         isConnectedRef.current = false;
         setGameEndMessage(null);
-        currentRoomCodeRef.current = null;
     };
 
     const changeColor = (color: string) => {
@@ -443,7 +454,6 @@ const FiveInLineGame: React.FC = () => {
         clientReadySentRef.current = false;
         isConnectedRef.current = false;
         setGameEndMessage(null);
-        currentRoomCodeRef.current = null;
     };
 
     const handlePlayAgain = () => {
