@@ -27,12 +27,16 @@ interface LobbyPlayer {
 }
 
 const isProduction = (import.meta as any).env?.PROD ?? false;
+
+// URLs correctas para el backend
 const API_BASE = isProduction
     ? 'https://5inline.duckdns.org/api'
     : 'http://localhost:8080/api';
+
+// IMPORTANTE: SockJS usa http/https, NO ws/wss
 const WS_BASE = isProduction
-    ? 'https://5inline.duckdns.org/ws'
-    : 'http://localhost:8080/ws';
+    ? 'https://5inline.duckdns.org/ws-game/websocket'
+    : 'http://localhost:8080/ws-game/websocket';
 
 const FiveInLineGame: React.FC = () => {
     const [gamePhase, setGamePhase] = useState<GamePhase>('selector');
@@ -158,7 +162,8 @@ const FiveInLineGame: React.FC = () => {
     const connectWebSocket = useCallback((lobbyCode: string) => {
         if (!lobbyCode) return;
 
-        console.log('Creating SockJS connection to:', WS_BASE);
+        const wsUrl = `${WS_BASE}?userId=${userId}&lobbyCode=${lobbyCode}`;
+        console.log('Connecting WebSocket to:', wsUrl);
 
         if (ws) {
             console.log('Closing existing connection');
@@ -167,14 +172,13 @@ const FiveInLineGame: React.FC = () => {
 
         isConnectedRef.current = false;
         clientReadySentRef.current = false;
-        const socket = new SockJS(WS_BASE);
+
+        // Usar WebSocket nativo (no SockJS) para simplificar
+        const socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
-            console.log('SockJS connection opened');
-
-            const initMsg = JSON.stringify({ type: 'INIT', userId: userId, lobbyCode: lobbyCode });
-            socket.send(initMsg);
-            console.log('INIT message sent:', initMsg);
+            console.log('WebSocket connected successfully to lobby:', lobbyCode);
+            isConnectedRef.current = true;
 
             if (pingIntervalRef.current) {
                 clearInterval(pingIntervalRef.current);
@@ -186,24 +190,15 @@ const FiveInLineGame: React.FC = () => {
             }, 15000);
         };
 
-        socket.onmessage = (event: any) => {
+        socket.onmessage = (event) => {
             const rawData = event.data;
-            console.log('RAW SOCKJS MESSAGE:', rawData);
-
-            if (rawData === 'h') {
-                return;
-            }
+            console.log('RAW WEBSOCKET MESSAGE:', rawData);
 
             try {
                 const data = JSON.parse(rawData);
                 console.log('PARSED MESSAGE - type:', data.type);
 
                 switch (data.type) {
-                    case 'INIT_ACK':
-                        console.log('INIT_ACK received - connection confirmed');
-                        isConnectedRef.current = true;
-                        break;
-
                     case 'LOBBY_UPDATE':
                         console.log('LOBBY_UPDATE received');
                         const playersList: LobbyPlayer[] = (data.players || []).map((p: any) => ({
@@ -228,12 +223,6 @@ const FiveInLineGame: React.FC = () => {
                         console.log('COUNTDOWN_START received with count:', data.count);
                         setCountdownActive(true);
                         setGamePhase('countdown');
-                        if (socket.readyState === WebSocket.OPEN && !clientReadySentRef.current) {
-                            const readyMsg = JSON.stringify({ type: 'CLIENT_READY' });
-                            socket.send(readyMsg);
-                            clientReadySentRef.current = true;
-                            console.log('CLIENT_READY sent after COUNTDOWN_START');
-                        }
                         break;
 
                     case 'COUNTDOWN_TICK':
@@ -269,17 +258,16 @@ const FiveInLineGame: React.FC = () => {
             }
         };
 
-        socket.onclose = (event: any) => {
-            console.log('SockJS closed - code:', event.code, 'reason:', event.reason);
+        socket.onclose = (event) => {
+            console.log('WebSocket closed - code:', event.code, 'reason:', event.reason);
             isConnectedRef.current = false;
-            clientReadySentRef.current = false;
             if (pingIntervalRef.current) {
                 clearInterval(pingIntervalRef.current);
             }
         };
 
-        socket.onerror = (error: any) => {
-            console.error('SockJS error:', error);
+        socket.onerror = (error) => {
+            console.error('WebSocket error:', error);
         };
 
         setWs(socket);
@@ -410,15 +398,6 @@ const FiveInLineGame: React.FC = () => {
             const startMsg = JSON.stringify({ type: 'START_GAME', lobbyCode: roomCode });
             ws.send(startMsg);
             console.log('START_GAME sent to lobby:', roomCode);
-
-            setTimeout(() => {
-                if (ws && ws.readyState === WebSocket.OPEN && !clientReadySentRef.current) {
-                    const readyMsg = JSON.stringify({ type: 'CLIENT_READY' });
-                    ws.send(readyMsg);
-                    clientReadySentRef.current = true;
-                    console.log('CLIENT_READY sent for host');
-                }
-            }, 500);
         } else {
             console.log('Cannot start game - ws state:', ws?.readyState, 'isHost:', isHost, 'connected:', isConnectedRef.current);
         }
