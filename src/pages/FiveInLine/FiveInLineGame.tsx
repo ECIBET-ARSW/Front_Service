@@ -29,9 +29,20 @@ const isProduction = (import.meta as any).env?.PROD ?? false;
 const API_BASE = isProduction
     ? 'https://5inline.duckdns.org/api'
     : 'http://localhost:8080/api';
-const WS_BASE = isProduction
-    ? 'wss://5inline.duckdns.org/ws'
-    : 'ws://localhost:8080/ws';
+
+// URLS posibles - probar hasta encontrar la correcta
+const WS_URLS = {
+    local: [
+        'ws://localhost:8080/ws',
+        'ws://localhost:8080/ws-game/websocket',
+        'ws://localhost:8080/ws-game'
+    ],
+    production: [
+        'wss://5inline.duckdns.org/ws',
+        'wss://5inline.duckdns.org/ws-game/websocket',
+        'wss://5inline.duckdns.org/ws-game'
+    ]
+};
 
 const FiveInLineGame: React.FC = () => {
     const [gamePhase, setGamePhase] = useState<GamePhase>('selector');
@@ -54,8 +65,8 @@ const FiveInLineGame: React.FC = () => {
     const [isCreatingLobby, setIsCreatingLobby] = useState(false);
     const [gameEndMessage, setGameEndMessage] = useState<string | null>(null);
     const pollingIntervalRef = useRef<any>(null);
-    const actionCountRef = useRef<number>(0);
     const isConnectedRef = useRef<boolean>(false);
+    const currentWsUrlRef = useRef<string>('');
 
     const { isLoading } = useSpriteLoader();
 
@@ -124,7 +135,6 @@ const FiveInLineGame: React.FC = () => {
         }
     }, [userId]);
 
-    // Polling para simular WebSocket
     useEffect(() => {
         if (gamePhase === 'waiting' && roomCode) {
             if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
@@ -138,22 +148,28 @@ const FiveInLineGame: React.FC = () => {
     const connectWebSocket = useCallback((lobbyCode: string) => {
         if (!lobbyCode) return;
 
-        const wsUrl = `${WS_BASE}?userId=${userId}&lobbyCode=${lobbyCode}`;
-        console.log('Conectando WebSocket a:', wsUrl);
+        // Intentar con la URL correcta - Ajusta según tu backend
+        // Prueba con estas opciones:
+        const wsUrl = isProduction
+            ? `wss://5inline.duckdns.org/ws-game/websocket?userId=${userId}&lobbyCode=${lobbyCode}`
+            : `ws://localhost:8080/ws-game/websocket?userId=${userId}&lobbyCode=${lobbyCode}`;
+
+        console.log('🔌 Conectando WebSocket a:', wsUrl);
+        currentWsUrlRef.current = wsUrl;
 
         if (ws) ws.close();
 
         const socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
-            console.log('✅ WebSocket conectado');
+            console.log('✅ WebSocket conectado exitosamente');
             isConnectedRef.current = true;
         };
 
         socket.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                console.log('Mensaje recibido:', data.type);
+                console.log('📨 Mensaje recibido:', data.type);
 
                 switch (data.type) {
                     case 'LOBBY_UPDATE':
@@ -186,19 +202,22 @@ const FiveInLineGame: React.FC = () => {
                         setResults(data.results || []);
                         setGamePhase('result');
                         break;
+                    case 'PONG':
+                        break;
                 }
             } catch (e) {
                 console.error('Error parsing message:', e);
             }
         };
 
-        socket.onclose = () => {
-            console.log('❌ WebSocket cerrado');
+        socket.onclose = (event) => {
+            console.log(`❌ WebSocket cerrado - código: ${event.code} - razón: ${event.reason || 'sin razón'}`);
             isConnectedRef.current = false;
         };
 
         socket.onerror = (error) => {
             console.error('❌ WebSocket error:', error);
+            console.error('URL que falló:', currentWsUrlRef.current);
         };
 
         setWs(socket);
@@ -261,23 +280,35 @@ const FiveInLineGame: React.FC = () => {
     };
 
     const toggleReady = () => {
+        console.log('toggleReady - isHost:', isHost, 'ws readyState:', ws?.readyState);
+
         if (isHost) {
             console.log('Host no puede cambiar estado');
             return;
         }
+
+        if (isTogglingReady) return;
+
         if (ws && ws.readyState === WebSocket.OPEN && isConnectedRef.current) {
+            setIsTogglingReady(true);
             ws.send(JSON.stringify({ type: 'TOGGLE_READY' }));
             console.log('TOGGLE_READY enviado');
+            setTimeout(() => setIsTogglingReady(false), 1000);
         } else {
-            console.log('WebSocket no conectado, reintentando...');
-            if (roomCode) connectWebSocket(roomCode);
+            console.log('WebSocket no conectado. readyState:', ws?.readyState, 'connected:', isConnectedRef.current);
+            if (roomCode) {
+                console.log('Reintentando conexión...');
+                connectWebSocket(roomCode);
+            }
         }
     };
 
     const startGame = () => {
-        if (ws && ws.readyState === WebSocket.OPEN && isHost && roomCode) {
+        if (ws && ws.readyState === WebSocket.OPEN && isHost && roomCode && isConnectedRef.current) {
             ws.send(JSON.stringify({ type: 'START_GAME', lobbyCode: roomCode }));
             console.log('START_GAME enviado');
+        } else {
+            console.log('No se puede iniciar - ws state:', ws?.readyState, 'isHost:', isHost);
         }
     };
 
