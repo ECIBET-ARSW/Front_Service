@@ -47,12 +47,8 @@ interface SpriteLoaderReturn {
     getImage: (path: string) => HTMLImageElement | undefined;
 }
 
-const isProduction = import.meta.env.PROD;
-
-// En desarrollo usa src/, en producción usa /pixelart_5inline (de public/)
-const ASSETS_BASE_PATH = isProduction
-    ? '/pixelart_5inline'
-    : '/src/games/FiveInLine/assets/pixelart_5inline';
+// Ruta fija a public/pixelart_5inline
+const ASSETS_BASE_PATH = '/pixelart_5inline';
 
 const assetPaths: Record<string, string> = {
     red_idle: `${ASSETS_BASE_PATH}/runners/red/red_idle.png`,
