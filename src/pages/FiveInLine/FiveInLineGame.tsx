@@ -29,11 +29,9 @@ const isProduction = (import.meta as any).env?.PROD ?? false;
 const API_BASE = isProduction
     ? 'https://5inline.duckdns.org/api'
     : 'http://localhost:8080/api';
-
-// IMPORTANTE: Ajusta esta URL según tu backend
 const WS_BASE = isProduction
     ? 'wss://5inline.duckdns.org/ws'
-    : 'ws://localhost:8080/ws-game/websocket';  // Prueba con /ws o /ws-game/websocket
+    : 'ws://localhost:8080/ws';
 
 const FiveInLineGame: React.FC = () => {
     const [gamePhase, setGamePhase] = useState<GamePhase>('selector');
@@ -55,22 +53,15 @@ const FiveInLineGame: React.FC = () => {
     const [isTogglingReady, setIsTogglingReady] = useState(false);
     const [isCreatingLobby, setIsCreatingLobby] = useState(false);
     const [gameEndMessage, setGameEndMessage] = useState<string | null>(null);
-    const countdownIntervalRef = useRef<any>(null);
-    const pingIntervalRef = useRef<any>(null);
-    const clientReadySentRef = useRef<boolean>(false);
+    const pollingIntervalRef = useRef<any>(null);
     const actionCountRef = useRef<number>(0);
     const isConnectedRef = useRef<boolean>(false);
-    const reconnectAttemptsRef = useRef<number>(0);
 
     const { isLoading } = useSpriteLoader();
 
     useEffect(() => {
-        console.log('=== LOBBY PLAYERS UPDATED ===');
-        console.log('Players:', lobbyPlayers);
-        console.log('Min players:', minPlayers);
-        const allReady = lobbyPlayers.length >= minPlayers && lobbyPlayers.length > 0 && lobbyPlayers.every(p => p.isReady === true);
-        console.log('All ready:', allReady);
-    }, [lobbyPlayers, minPlayers]);
+        console.log('=== LOBBY PLAYERS UPDATED ===', lobbyPlayers);
+    }, [lobbyPlayers]);
 
     useEffect(() => {
         console.log('=== GAME PHASE CHANGED ===', gamePhase);
@@ -78,47 +69,30 @@ const FiveInLineGame: React.FC = () => {
 
     useEffect(() => {
         if (gameEndMessage) {
-            const timer = setTimeout(() => {
-                setGameEndMessage(null);
-            }, 3000);
+            const timer = setTimeout(() => setGameEndMessage(null), 3000);
             return () => clearTimeout(timer);
         }
     }, [gameEndMessage]);
 
     useEffect(() => {
         return () => {
-            if (countdownIntervalRef.current) {
-                clearInterval(countdownIntervalRef.current);
-            }
-            if (pingIntervalRef.current) {
-                clearInterval(pingIntervalRef.current);
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
             }
         };
     }, []);
 
     const handleAction = useCallback((action: ControlAction) => {
-        actionCountRef.current++;
+        if (gamePhase !== 'playing') return;
 
-        if (gamePhase === 'playing' && ws && ws.readyState === WebSocket.OPEN) {
-            let actionStr = '';
-            if (action === 'jump') {
-                actionStr = 'jump';
-            } else if (action === 'slide') {
-                actionStr = 'slide';
-            } else if (action === 'run') {
-                actionStr = 'run';
-            } else if (action === 'stop') {
-                actionStr = 'stop';
-            }
-            if (actionStr) {
-                const message = JSON.stringify({
-                    type: 'PLAYER_ACTION',
-                    action: actionStr,
-                    timestamp: Date.now()
-                });
-                ws.send(message);
-                console.log(`ACTION SENT: ${actionStr}`);
-            }
+        let actionStr = '';
+        if (action === 'jump') actionStr = 'jump';
+        else if (action === 'slide') actionStr = 'slide';
+        else if (action === 'run') actionStr = 'run';
+        else if (action === 'stop') actionStr = 'stop';
+
+        if (actionStr && ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'PLAYER_ACTION', action: actionStr, timestamp: Date.now() }));
         }
     }, [gamePhase, ws]);
 
@@ -130,7 +104,6 @@ const FiveInLineGame: React.FC = () => {
     const fetchLobbyStatus = useCallback(async (code: string) => {
         if (!code) return;
         try {
-            console.log('Fetching lobby status for:', code);
             const response = await fetch(`${API_BASE}/lobbies/public`);
             const lobbies = await response.json();
             const lobby = lobbies.find((l: any) => l.code === code);
@@ -151,12 +124,14 @@ const FiveInLineGame: React.FC = () => {
         }
     }, [userId]);
 
+    // Polling para simular WebSocket
     useEffect(() => {
         if (gamePhase === 'waiting' && roomCode) {
-            const interval = setInterval(() => {
+            if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = setInterval(() => {
                 fetchLobbyStatus(roomCode);
-            }, 2000);
-            return () => clearInterval(interval);
+            }, 1000);
+            return () => clearInterval(pollingIntervalRef.current);
         }
     }, [gamePhase, roomCode, fetchLobbyStatus]);
 
@@ -164,40 +139,21 @@ const FiveInLineGame: React.FC = () => {
         if (!lobbyCode) return;
 
         const wsUrl = `${WS_BASE}?userId=${userId}&lobbyCode=${lobbyCode}`;
-        console.log('🔌 Conectando WebSocket a:', wsUrl);
+        console.log('Conectando WebSocket a:', wsUrl);
 
-        if (ws) {
-            console.log('Cerrando conexión existente');
-            ws.close();
-        }
-
-        isConnectedRef.current = false;
-        reconnectAttemptsRef.current = 0;
+        if (ws) ws.close();
 
         const socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
-            console.log(`✅ WebSocket CONECTADO a lobby: ${lobbyCode}`);
+            console.log('✅ WebSocket conectado');
             isConnectedRef.current = true;
-            reconnectAttemptsRef.current = 0;
-
-            if (pingIntervalRef.current) {
-                clearInterval(pingIntervalRef.current);
-            }
-            pingIntervalRef.current = setInterval(() => {
-                if (socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({ type: 'PING' }));
-                }
-            }, 15000);
         };
 
         socket.onmessage = (event) => {
-            const rawData = event.data;
-            console.log('📨 Mensaje recibido:', rawData);
-
             try {
-                const data = JSON.parse(rawData);
-                console.log('📨 Tipo de mensaje:', data.type);
+                const data = JSON.parse(event.data);
+                console.log('Mensaje recibido:', data.type);
 
                 switch (data.type) {
                     case 'LOBBY_UPDATE':
@@ -212,106 +168,62 @@ const FiveInLineGame: React.FC = () => {
                         setIsHost(data.hostId === userId);
                         setTakenColors(playersList.map(p => p.color));
                         break;
-
                     case 'GAME_STATE':
                         setGameState(data);
                         break;
-
                     case 'COUNTDOWN_START':
                         setCountdownActive(true);
                         setGamePhase('countdown');
                         break;
-
-                    case 'COUNTDOWN_TICK':
-                        break;
-
                     case 'COUNTDOWN_GO':
                         setCountdownActive(false);
                         setGamePhase('playing');
                         break;
-
                     case 'GAME_END_MESSAGE':
                         setGameEndMessage(data.message);
                         break;
-
                     case 'GAME_END':
                         setResults(data.results || []);
                         setGamePhase('result');
                         break;
-
-                    case 'PONG':
-                        break;
-
-                    default:
-                        console.log('Tipo de mensaje desconocido:', data.type);
                 }
             } catch (e) {
-                console.error('Error parseando mensaje:', e);
+                console.error('Error parsing message:', e);
             }
         };
 
-        socket.onclose = (event) => {
-            console.log(`❌ WebSocket CERRADO - código: ${event.code}, razón: ${event.reason}`);
+        socket.onclose = () => {
+            console.log('❌ WebSocket cerrado');
             isConnectedRef.current = false;
-            if (pingIntervalRef.current) {
-                clearInterval(pingIntervalRef.current);
-            }
-
-            // Reintentar conexión después de 3 segundos
-            if (reconnectAttemptsRef.current < 5 && roomCode) {
-                reconnectAttemptsRef.current++;
-                console.log(`🔄 Reintentando conexión (${reconnectAttemptsRef.current}/5) en 3 segundos...`);
-                setTimeout(() => {
-                    if (roomCode && !isConnectedRef.current) {
-                        connectWebSocket(roomCode);
-                    }
-                }, 3000);
-            }
         };
 
         socket.onerror = (error) => {
-            console.error('❌ Error en WebSocket:', error);
-            console.error('URL intentada:', wsUrl);
+            console.error('❌ WebSocket error:', error);
         };
 
         setWs(socket);
-        return socket;
-    }, [userId, ws, roomCode]);
+    }, [userId, ws]);
 
     const createLobby = async () => {
         if (isCreatingLobby) return;
-
         setIsCreatingLobby(true);
         try {
-            console.log('Creando lobby...');
             const response = await fetch(`${API_BASE}/lobbies/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userId: userId,
-                    username: username,
+                    userId, username,
                     betAmount: betAmount,
                     minPlayers: minPlayers,
                     color: selectedColor.toUpperCase()
                 })
             });
-
-            if (!response.ok) {
-                const error = await response.text();
-                throw new Error(error);
-            }
-
             const data = await response.json();
-            console.log('Lobby creado:', data);
-
-            const newRoomCode = data.lobbyCode;
-            setRoomCode(newRoomCode);
+            setRoomCode(data.lobbyCode);
             setIsHost(true);
             setGamePhase('waiting');
             setShowCreateModal(false);
-
-            connectWebSocket(newRoomCode);
-
+            connectWebSocket(data.lobbyCode);
         } catch (error) {
             console.error('Error:', error);
             alert('Error al crear la sala');
@@ -325,37 +237,23 @@ const FiveInLineGame: React.FC = () => {
             alert('Ingresa un código de sala');
             return;
         }
-
         try {
-            console.log('Uniéndose a lobby:', joinCode);
             const response = await fetch(`${API_BASE}/lobbies/join`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     lobbyCode: joinCode.toUpperCase(),
-                    userId: userId,
-                    username: username,
+                    userId, username,
                     betAmount: 10000,
                     color: selectedColor.toUpperCase()
                 })
             });
-
-            if (!response.ok) {
-                const error = await response.text();
-                throw new Error(error);
-            }
-
             const data = await response.json();
-            console.log('Unido a lobby:', data);
-
-            const joinedRoomCode = data.lobbyCode;
-            setRoomCode(joinedRoomCode);
+            setRoomCode(data.lobbyCode);
             setIsHost(false);
             setGamePhase('waiting');
             setJoinCode('');
-
-            connectWebSocket(joinedRoomCode);
-
+            connectWebSocket(data.lobbyCode);
         } catch (error) {
             console.error('Error:', error);
             alert('Error al unirse a la sala');
@@ -363,36 +261,23 @@ const FiveInLineGame: React.FC = () => {
     };
 
     const toggleReady = () => {
-        console.log('toggleReady - isHost:', isHost, 'ws state:', ws?.readyState, 'connected:', isConnectedRef.current);
-
         if (isHost) {
-            console.log('Host no puede cambiar su estado');
+            console.log('Host no puede cambiar estado');
             return;
         }
-
-        if (isTogglingReady) return;
-
         if (ws && ws.readyState === WebSocket.OPEN && isConnectedRef.current) {
-            setIsTogglingReady(true);
             ws.send(JSON.stringify({ type: 'TOGGLE_READY' }));
             console.log('TOGGLE_READY enviado');
-            setTimeout(() => setIsTogglingReady(false), 1000);
         } else {
-            console.log('WebSocket no está abierto, intentando reconectar...');
-            if (roomCode) {
-                connectWebSocket(roomCode);
-            }
+            console.log('WebSocket no conectado, reintentando...');
+            if (roomCode) connectWebSocket(roomCode);
         }
     };
 
     const startGame = () => {
-        console.log('startGame - isHost:', isHost, 'roomCode:', roomCode, 'ws state:', ws?.readyState);
-
-        if (ws && ws.readyState === WebSocket.OPEN && isHost && roomCode && isConnectedRef.current) {
+        if (ws && ws.readyState === WebSocket.OPEN && isHost && roomCode) {
             ws.send(JSON.stringify({ type: 'START_GAME', lobbyCode: roomCode }));
             console.log('START_GAME enviado');
-        } else {
-            console.log('No se puede iniciar la partida');
         }
     };
 
@@ -402,19 +287,15 @@ const FiveInLineGame: React.FC = () => {
         }
         setRoomCode(null);
         setGamePhase('selector');
-        if (ws) {
-            ws.close();
-            setWs(null);
-        }
+        if (ws) ws.close();
+        setWs(null);
         isConnectedRef.current = false;
-        setGameEndMessage(null);
     };
 
     const changeColor = (color: string) => {
         setSelectedColor(color);
         if (ws && ws.readyState === WebSocket.OPEN && roomCode && isConnectedRef.current) {
             ws.send(JSON.stringify({ type: 'CHANGE_COLOR', color: color.toUpperCase() }));
-            console.log('CHANGE_COLOR enviado:', color);
         }
     };
 
@@ -427,10 +308,8 @@ const FiveInLineGame: React.FC = () => {
         setResults([]);
         setRoomCode(null);
         setGamePhase('selector');
-        if (ws) {
-            ws.close();
-            setWs(null);
-        }
+        if (ws) ws.close();
+        setWs(null);
         isConnectedRef.current = false;
         setGameEndMessage(null);
     };
