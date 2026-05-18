@@ -16,7 +16,7 @@ const PokerLobby = () => {
   const [loading, setLoading]         = useState(false);
   const [showModal, setShowModal]     = useState(false);
   const [roomName, setRoomName]       = useState('');
-  const [buyIn, setBuyIn]             = useState(10000);
+  const [buyIn, setBuyIn]             = useState<string>('5000');
   const [error, setError]             = useState('');
   const [realBalance, setRealBalance] = useState<number | null>(null);
 
@@ -24,6 +24,8 @@ const PokerLobby = () => {
   const playerName = user?.username?.split(' ')[0] || '';
   const credits    = realBalance ?? Math.floor(user?.balance ?? 0);
   const canPlay    = credits >= MIN_BALANCE;
+  const buyInNum   = Number(buyIn);
+  const buyInValid = !isNaN(buyInNum) && buyInNum >= 2000 && buyInNum <= 2000000;
 
   useEffect(() => {
     async function fetchBalance() {
@@ -64,14 +66,17 @@ const PokerLobby = () => {
 
   const handleCreate = async () => {
     if (!roomName.trim() || !user) return;
-    if (!canPlay) return setError(`Necesitas mínimo $${MIN_BALANCE.toLocaleString()} COP para jugar`);
+    if (credits < buyInNum) return setError(`Necesitas mínimo $${buyInNum.toLocaleString()} COP para crear esta sala. Tienes $${credits.toLocaleString()} COP`);
     setLoading(true);
     setError('');
     try {
-      const lobby = await createLobby({ playerId, playerName, credits: buyIn });
+      const lobby = await createLobby({ playerId, playerName, credits: buyInNum });
       localStorage.setItem('pokerLobbyId', lobby.id);
       localStorage.setItem('pokerGameId', lobby.actualGame?.id || lobby.id);
-      localStorage.setItem('pokerPersonaje', '1Personaje.jpeg');
+      const me = lobby.actualGame?.players?.find((p: any) => p.id === playerId);
+      const myNum = me?.avatarIndex ?? 1;
+      localStorage.setItem('pokerPersonaje', `${myNum}Personaje.jpeg`);
+      localStorage.setItem('pokerPlayerId', playerId);
       setShowModal(false);
       setRoomName('');
       navigate('/games/poker/play');
@@ -83,16 +88,18 @@ const PokerLobby = () => {
   };
 
   const handleJoin = async (room: any) => {
-    if (!user || !canPlay) return;
+    if (!user) return;
+    if (!canPlay) return setError(`Necesitas mínimo $${MIN_BALANCE.toLocaleString()} COP para jugar`);
     setLoading(true);
     setError('');
     try {
       const lobby = await joinLobby({ lobbyId: room.id, playerId, playerName, credits });
       localStorage.setItem('pokerLobbyId', lobby.id);
       localStorage.setItem('pokerGameId', lobby.actualGame?.id || lobby.id);
-      const players = lobby.actualGame?.players?.filter((p: any) => p.inLobby) ?? [];
-      const idx = players.findIndex((p: any) => p.id === playerId);
-      localStorage.setItem('pokerPersonaje', `${Math.min(idx >= 0 ? idx + 1 : players.length, 6)}Personaje.jpeg`);
+      localStorage.setItem('pokerPlayerId', playerId);
+      const me = lobby.actualGame?.players?.find((p: any) => p.id === playerId);
+      const myNum = me?.avatarIndex ?? 2;
+      localStorage.setItem('pokerPersonaje', `${myNum}Personaje.jpeg`);
       navigate('/games/poker/play');
     } catch (e: any) {
       setError(e.message);
@@ -106,9 +113,9 @@ const PokerLobby = () => {
       <div className="lobby-header">
         <button
           onClick={() => navigate('/games')}
-          style={{ position: 'absolute', left: 0, top: 0, background: 'transparent', border: '1px solid #555', color: '#555', padding: '6px 14px', borderRadius: 2, cursor: 'pointer', fontFamily: "'Courier New', monospace", fontSize: '0.75rem', letterSpacing: 1 }}
+          style={{ position: 'absolute', left: 0, top: 0, background: 'transparent', border: '1px solid #c0392b', color: '#c0392b', padding: '6px 14px', borderRadius: 2, cursor: 'pointer', fontFamily: "'Courier New', monospace", fontSize: '0.75rem', letterSpacing: 1 }}
         >
-          ← Juegos
+          ← Volver
         </button>
         <motion.h1 className="lobby-title" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
           POKER
@@ -171,7 +178,7 @@ const PokerLobby = () => {
                   <div className="room-info">
                     <span className="room-name">#{room.id.slice(-6).toUpperCase()}</span>
                     <span className="room-players">{players.length}/6 jugadores</span>
-                    <span className="room-buyin">Buy-in: {buyIn.toLocaleString()} COP</span>
+                    <span className="room-buyin">Mínimo: ${Number(buyIn).toLocaleString()} COP</span>
                     <div className="room-player-list">
                       {players.map((p: any, idx: number) => (
                         <span key={idx} className="room-player-chip">{p.name || p.id}</span>
@@ -206,20 +213,30 @@ const PokerLobby = () => {
                 <input type="text" value={roomName} onChange={e => setRoomName(e.target.value)} placeholder="Ej: Los Valientes" maxLength={30} autoFocus />
               </div>
               <div className="modal-field">
-                <label>Buy-in (COP)</label>
+                <label>Valor mínimo de entrada (COP)</label>
                 <div className="buyin-options">
-                  {[5000, 10000, 25000, 50000].map(v => (
-                    <button key={v} className={`buyin-btn ${buyIn === v ? 'selected' : ''}`} onClick={() => setBuyIn(v)}>
-                      {v.toLocaleString()}
+                  {[{ label: 'MIN', val: 2000 }, { label: '100K', val: 100000 }, { label: '900K', val: 900000 }, { label: 'MAX', val: 2000000 }].map(({ label, val }) => (
+                    <button key={val} className={`buyin-btn ${buyIn === val ? 'selected' : ''}`} onClick={() => setBuyIn(String(val))}>
+                      {label}
                     </button>
                   ))}
                 </div>
-                <input type="number" value={buyIn} onChange={e => setBuyIn(Number(e.target.value))} min={1000} />
+                <input
+                  type="number"
+                  value={buyIn}
+                  onChange={e => setBuyIn(e.target.value)}
+                  placeholder="Ej: 50000"
+                />
+                {(!buyInValid && buyIn !== '') && (
+                  <p style={{ color: '#e74c3c', fontSize: '0.75rem', marginTop: 4 }}>
+                    El valor debe estar entre $2.000 y $2.000.000 COP
+                  </p>
+                )}
               </div>
               {error && <p style={{ color: '#e74c3c', fontSize: '0.8rem', marginBottom: 8 }}>{error}</p>}
               <div className="modal-actions">
                 <button className="btn-cancel" onClick={() => setShowModal(false)}>Cancelar</button>
-                <button className="btn-confirm" onClick={handleCreate} disabled={!roomName.trim() || loading}>
+                <button className="btn-confirm" onClick={handleCreate} disabled={!roomName.trim() || loading || !buyInValid}>
                   {loading ? 'Creando...' : 'Crear'}
                 </button>
               </div>
