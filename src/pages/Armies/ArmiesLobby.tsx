@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../../../context/AuthContext';
-import { getLobbies, createLobby, joinLobby, Lobby as LobbyType } from '../../../services/armies/armiesApi';
+import { useAuth } from '../../context/AuthContext';
+import { getLobbies, createLobby, joinLobby, Lobby as LobbyType } from '../../services/armies/armiesApi';
 import './ArmiesLobby.css';
 
 const ArmiesLobby = () => {
@@ -24,7 +24,7 @@ const ArmiesLobby = () => {
   const fetchLobbies = async () => {
     try {
       const data = await getLobbies();
-      setLobbies(data.filter(l => l.status === 'WAITING'));
+      setLobbies(data.filter((l: LobbyType) => l.status === 'WAITING'));
     } catch (error) {
       console.error('Error fetching lobbies:', error);
     }
@@ -149,7 +149,7 @@ const ArmiesLobby = () => {
                     Apuesta: ${lobby.betAmount.toLocaleString()}
                   </span>
                   <div className="armies-room-player-list">
-                    {lobby.playerNames.map((name, idx) => (
+                    {lobby.playerNames.map((name: string, idx: number) => (
                       <span key={idx} className="armies-room-player-chip">
                         {name}
                       </span>

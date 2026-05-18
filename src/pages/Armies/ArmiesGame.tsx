@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../../../context/AuthContext';
-import { startGame, registerKeyPress, leaveLobby, getGameState, GameState } from '../../../services/armies/armiesApi';
+import { useAuth } from '../../context/AuthContext';
+import { startGame, registerKeyPress, leaveLobby, getGameState, GameState, Player } from '../../services/armies/armiesApi';
 import './ArmiesGame.css';
 
 const ARMIES_WS_URL = import.meta.env.VITE_ARMIES_WS_URL ?? 'ws://localhost:8094';
@@ -123,8 +123,8 @@ const ArmiesGame = () => {
     );
   }
 
-  const myPlayer = gameState.players.find(p => p.userId === user?.id);
-  const opponent = gameState.players.find(p => p.userId !== user?.id);
+  const myPlayer = gameState.players.find((p: Player) => p.userId === user?.id);
+  const opponent = gameState.players.find((p: Player) => p.userId !== user?.id);
   const isHost = gameState.players[0]?.userId === user?.id;
 
   const getBackgroundImage = () => {
@@ -226,7 +226,7 @@ const ArmiesGame = () => {
           >
             <h1>{gameState.winnerId === user?.id ? '¡VICTORIA!' : 'DERROTA'}</h1>
             <p className="winner-name">
-              {gameState.players.find(p => p.userId === gameState.winnerId)?.username} gana
+              {gameState.players.find((p: Player) => p.userId === gameState.winnerId)?.username} gana
             </p>
             <p className="prize-amount">${gameState.pot.toLocaleString()}</p>
             <p className="redirect-message">Redirigiendo al lobby...</p>
