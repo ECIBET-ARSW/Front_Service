@@ -6,6 +6,8 @@ import { GameHUD } from '../../games/FiveInLine/components/GameHUD';
 import { CountdownOverlay } from '../../games/FiveInLine/components/CountdownOverlay';
 import { useSpriteLoader } from '../../games/FiveInLine/hooks/useSpriteLoader';
 import { useKeyboardControls, ControlAction } from '../../games/FiveInLine/hooks/useKeyboardControls';
+import SockJS from 'sockjs-client';
+import { Client } from '@stomp/stompjs';
 
 type GamePhase = 'selector' | 'waiting' | 'countdown' | 'playing' | 'result';
 
@@ -29,6 +31,9 @@ const isProduction = (import.meta as any).env?.PROD ?? false;
 const API_BASE = isProduction
     ? 'https://5inline.duckdns.org/api'
     : 'http://localhost:8080/api';
+const WS_BASE = isProduction
+    ? 'https://5inline.duckdns.org/ws'
+    : 'http://localhost:8080/ws';
 
 const FiveInLineGame: React.FC = () => {
     const [gamePhase, setGamePhase] = useState<GamePhase>('selector');
@@ -45,12 +50,13 @@ const FiveInLineGame: React.FC = () => {
     const [joinCode, setJoinCode] = useState<string>('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [takenColors, setTakenColors] = useState<string[]>([]);
+    const [stompClient, setStompClient] = useState<Client | null>(null);
     const [gameState, setGameState] = useState<any>(null);
     const [isTogglingReady, setIsTogglingReady] = useState(false);
     const [isCreatingLobby, setIsCreatingLobby] = useState(false);
     const [gameEndMessage, setGameEndMessage] = useState<string | null>(null);
     const pollingIntervalRef = useRef<any>(null);
-    const [wsError, setWsError] = useState<string | null>(null);
+    const isConnectedRef = useRef<boolean>(false);
 
     const { isLoading } = useSpriteLoader();
 
@@ -74,14 +80,28 @@ const FiveInLineGame: React.FC = () => {
             if (pollingIntervalRef.current) {
                 clearInterval(pollingIntervalRef.current);
             }
+            if (stompClient) {
+                stompClient.deactivate();
+            }
         };
-    }, []);
+    }, [stompClient]);
 
     const handleAction = useCallback((action: ControlAction) => {
         if (gamePhase !== 'playing') return;
-        // Simulación - en producción esto enviaría WebSocket
-        console.log('Action:', action);
-    }, [gamePhase]);
+
+        let actionStr = '';
+        if (action === 'jump') actionStr = 'jump';
+        else if (action === 'slide') actionStr = 'slide';
+        else if (action === 'run') actionStr = 'run';
+        else if (action === 'stop') actionStr = 'stop';
+
+        if (actionStr && stompClient && stompClient.connected) {
+            stompClient.publish({
+                destination: '/app/player-action',
+                body: JSON.stringify({ action: actionStr, timestamp: Date.now(), userId, lobbyCode: roomCode })
+            });
+        }
+    }, [gamePhase, stompClient, userId, roomCode]);
 
     useKeyboardControls({
         onAction: handleAction,
@@ -108,11 +128,9 @@ const FiveInLineGame: React.FC = () => {
             }
         } catch (error) {
             console.error('Error fetching lobby:', error);
-            setWsError('No se pudo conectar con el servidor');
         }
     }, [userId]);
 
-    // Polling para obtener el estado del lobby
     useEffect(() => {
         if (gamePhase === 'waiting' && roomCode) {
             if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
@@ -123,10 +141,91 @@ const FiveInLineGame: React.FC = () => {
         }
     }, [gamePhase, roomCode, fetchLobbyStatus]);
 
+    const connectWebSocket = useCallback((lobbyCode: string) => {
+        if (!lobbyCode) return;
+
+        console.log('Conectando STOMP a:', WS_BASE);
+
+        if (stompClient) {
+            stompClient.deactivate();
+        }
+
+        const socket = new SockJS(WS_BASE);
+        const client = new Client({
+            webSocketFactory: () => socket,
+            debug: (str) => console.log('STOMP debug:', str),
+            reconnectDelay: 5000,
+            heartbeatIncoming: 4000,
+            heartbeatOutgoing: 4000
+        });
+
+        client.onConnect = () => {
+            console.log('✅ STOMP conectado');
+            isConnectedRef.current = true;
+
+            // Suscribirse a tópicos
+            client.subscribe(`/topic/lobby/${lobbyCode}`, (message) => {
+                const data = JSON.parse(message.body);
+                console.log('📨 Mensaje recibido:', data.type);
+
+                switch (data.type) {
+                    case 'LOBBY_UPDATE':
+                        const playersList: LobbyPlayer[] = (data.players || []).map((p: any) => ({
+                            userId: p.userId,
+                            username: p.username,
+                            color: p.color,
+                            isReady: p.isReady === true,
+                            isHost: p.userId === data.hostId
+                        }));
+                        setLobbyPlayers(playersList);
+                        setIsHost(data.hostId === userId);
+                        setTakenColors(playersList.map(p => p.color));
+                        break;
+                    case 'GAME_STATE':
+                        setGameState(data);
+                        break;
+                    case 'COUNTDOWN_START':
+                        setCountdownActive(true);
+                        setGamePhase('countdown');
+                        break;
+                    case 'COUNTDOWN_GO':
+                        setCountdownActive(false);
+                        setGamePhase('playing');
+                        break;
+                    case 'GAME_END_MESSAGE':
+                        setGameEndMessage(data.message);
+                        break;
+                    case 'GAME_END':
+                        setResults(data.results || []);
+                        setGamePhase('result');
+                        break;
+                }
+            });
+
+            // Enviar mensaje de conexión
+            client.publish({
+                destination: '/app/connect',
+                body: JSON.stringify({ userId, lobbyCode })
+            });
+        };
+
+        client.onStompError = (frame) => {
+            console.error('❌ STOMP error:', frame);
+            isConnectedRef.current = false;
+        };
+
+        client.onDisconnect = () => {
+            console.log('❌ STOMP desconectado');
+            isConnectedRef.current = false;
+        };
+
+        client.activate();
+        setStompClient(client);
+    }, [stompClient, userId]);
+
     const createLobby = async () => {
         if (isCreatingLobby) return;
         setIsCreatingLobby(true);
-        setWsError(null);
         try {
             const response = await fetch(`${API_BASE}/lobbies/create`, {
                 method: 'POST',
@@ -143,10 +242,10 @@ const FiveInLineGame: React.FC = () => {
             setIsHost(true);
             setGamePhase('waiting');
             setShowCreateModal(false);
+            connectWebSocket(data.lobbyCode);
         } catch (error) {
             console.error('Error:', error);
-            setWsError('Error al crear la sala. ¿El backend está corriendo?');
-            alert('Error al crear la sala. Verifica que el backend esté ejecutándose en http://localhost:8080');
+            alert('Error al crear la sala');
         } finally {
             setIsCreatingLobby(false);
         }
@@ -157,7 +256,6 @@ const FiveInLineGame: React.FC = () => {
             alert('Ingresa un código de sala');
             return;
         }
-        setWsError(null);
         try {
             const response = await fetch(`${API_BASE}/lobbies/join`, {
                 method: 'POST',
@@ -174,10 +272,10 @@ const FiveInLineGame: React.FC = () => {
             setIsHost(false);
             setGamePhase('waiting');
             setJoinCode('');
+            connectWebSocket(data.lobbyCode);
         } catch (error) {
             console.error('Error:', error);
-            setWsError('Error al unirse a la sala. ¿El backend está corriendo?');
-            alert('Error al unirse a la sala. Verifica que el backend esté ejecutándose en http://localhost:8080');
+            alert('Error al unirse a la sala');
         }
     };
 
@@ -191,45 +289,50 @@ const FiveInLineGame: React.FC = () => {
 
         setIsTogglingReady(true);
 
-        // Simular toggle ready mediante HTTP
-        fetch(`${API_BASE}/lobbies/toggle-ready`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lobbyCode: roomCode, userId: userId })
-        }).catch(console.error);
+        if (stompClient && stompClient.connected) {
+            stompClient.publish({
+                destination: '/app/toggle-ready',
+                body: JSON.stringify({ userId, lobbyCode: roomCode })
+            });
+        }
 
         setTimeout(() => setIsTogglingReady(false), 1000);
     };
 
     const startGame = () => {
-        if (isHost && roomCode) {
-            fetch(`${API_BASE}/lobbies/start`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ lobbyCode: roomCode, userId: userId })
-            }).catch(console.error);
+        if (stompClient && stompClient.connected && isHost && roomCode) {
+            stompClient.publish({
+                destination: '/app/start-game',
+                body: JSON.stringify({ userId, lobbyCode: roomCode })
+            });
         }
     };
 
     const leaveLobby = () => {
-        fetch(`${API_BASE}/lobbies/leave`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lobbyCode: roomCode, userId: userId })
-        }).catch(console.error);
-
+        if (stompClient && stompClient.connected) {
+            stompClient.publish({
+                destination: '/app/leave-room',
+                body: JSON.stringify({ userId, lobbyCode: roomCode })
+            });
+        }
         setRoomCode(null);
         setGamePhase('selector');
+        if (stompClient) {
+            stompClient.deactivate();
+            setStompClient(null);
+        }
+        isConnectedRef.current = false;
         setGameEndMessage(null);
     };
 
     const changeColor = (color: string) => {
         setSelectedColor(color);
-        fetch(`${API_BASE}/lobbies/change-color`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lobbyCode: roomCode, userId: userId, color: color.toUpperCase() })
-        }).catch(console.error);
+        if (stompClient && stompClient.connected && roomCode) {
+            stompClient.publish({
+                destination: '/app/change-color',
+                body: JSON.stringify({ userId, lobbyCode: roomCode, color: color.toUpperCase() })
+            });
+        }
     };
 
     const handleCountdownComplete = () => {
@@ -241,6 +344,11 @@ const FiveInLineGame: React.FC = () => {
         setResults([]);
         setRoomCode(null);
         setGamePhase('selector');
+        if (stompClient) {
+            stompClient.deactivate();
+            setStompClient(null);
+        }
+        isConnectedRef.current = false;
         setGameEndMessage(null);
     };
 
@@ -266,23 +374,6 @@ const FiveInLineGame: React.FC = () => {
 
     return (
         <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative' }}>
-            {wsError && (
-                <div style={{
-                    position: 'fixed',
-                    top: 10,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    backgroundColor: '#ff0000',
-                    color: 'white',
-                    padding: '10px 20px',
-                    borderRadius: '5px',
-                    zIndex: 9999,
-                    fontSize: '14px'
-                }}>
-                    ⚠️ {wsError}
-                </div>
-            )}
-
             {gamePhase === 'playing' && gameState && gameState.players && gameState.players.length > 0 && (
                 <>
                     <GameCanvas gameState={gameState} canvasWidth={1024} canvasHeight={576} onAnimationFrame={undefined} />
