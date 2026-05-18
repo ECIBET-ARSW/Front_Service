@@ -47,7 +47,8 @@ interface SpriteLoaderReturn {
     getImage: (path: string) => HTMLImageElement | undefined;
 }
 
-const ASSETS_BASE_PATH = '/src/games/FiveInLine/assets/pixelart_5inline';
+// Ruta corregida - los assets están en public/assets/pixelart_5inline/
+const ASSETS_BASE_PATH = '/assets/pixelart_5inline';
 
 const assetPaths: Record<string, string> = {
     red_idle: `${ASSETS_BASE_PATH}/runners/red/red_idle.png`,

@@ -8,16 +8,6 @@ const Games = () => {
   const navigate = useNavigate();
   const games: Game[] = [
     {
-      id: '1',
-      name: 'Ruleta Clásica',
-      description: 'La clásica ruleta de casino con apuestas múltiples y emoción garantizada',
-      minBet: 10,
-      maxPlayers: 8,
-      image: '/img/Roulette.jpg',
-      gradient: '1',
-      available: false
-    },
-    {
       id: '2',
       name: 'Poker Texas Hold\'em',
       description: 'Poker clásico con hasta 6 jugadores por mesa. Demuestra tu estrategia',
@@ -43,17 +33,17 @@ const Games = () => {
       description: 'Pulsa espacio más rápido que tu oponente. 3 rounds para ganar.',
       minBet: 1000,
       maxPlayers: 2,
-      icon: '💪',
+      image: '/img/Armies.jpg',
       gradient: 'red',
       available: true
     },
     {
       id: '5',
-      name: 'Juego Retro',
-      description: 'Experiencia nostálgica de consola antigua con premios modernos',
+      name: '5InLine',
+      description: 'Corre, salta y esquiva obstáculos. El último en pie se lleva todo.',
       minBet: 25,
-      maxPlayers: 1,
-      icon: 'RETRO',
+      maxPlayers: 5,
+      image: '/img/5inline.jpg',
       gradient: 'gold',
       available: true
     }
@@ -70,7 +60,7 @@ const Games = () => {
     <motion.div className="games-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
       <div className="games-header">
         <h1 className="games-title">Nuestros Juegos</h1>
-        <p className="games-description">Explora nuestra colección de juegos emocionantes. Más juegos próximamente.</p>
+        <p className="games-description">Explora nuestra colección de juegos emocionantes.</p>
       </div>
       <div className="games-grid">
         {games.map((game, index) => (

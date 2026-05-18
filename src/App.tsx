@@ -13,6 +13,8 @@ import WaitingRoom from './pages/LiarsBar/WaitingRoom/WaitingRoom';
 import GameTable from './pages/LiarsBar/GameTable/GameTable';
 import PokerLobby from './pages/Poker/PokerLobby';
 import PokerGame from './pages/Poker/PokerGame';
+import ArmiesLobby from './pages/Armies/ArmiesLobby';
+import ArmiesGame from './pages/Armies/ArmiesGame';
 import './App.css';
 import FiveInLineGame from './pages/FiveInLine/FiveInLineGame';
 
@@ -24,6 +26,7 @@ const AppRoutes = () => {
   const isFullscreen =
     location.pathname.match(/^\/games\/liars-bar\/.+/) ||
     location.pathname.match(/^\/games\/poker/) ||
+    location.pathname.match(/^\/games\/armies\/[^\/]+$/) ||
     location.pathname === '/';
 
   const routes = (
@@ -40,6 +43,8 @@ const AppRoutes = () => {
       <Route path="/games/liars-bar/:roomId/play" element={<ProtectedRoute><GameTable /></ProtectedRoute>} />
       <Route path="/games/poker" element={<ProtectedRoute><PokerLobby /></ProtectedRoute>} />
       <Route path="/games/poker/play" element={<ProtectedRoute><PokerGame /></ProtectedRoute>} />
+      <Route path="/games/armies" element={<ProtectedRoute><ArmiesLobby /></ProtectedRoute>} />
+      <Route path="/games/armies/:lobbyId" element={<ProtectedRoute><ArmiesGame /></ProtectedRoute>} />
     </Routes>
   );
 

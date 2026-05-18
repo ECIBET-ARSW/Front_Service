@@ -18,10 +18,10 @@ const Footer = () => {
         {/* Quick links to each game and sports betting */}
         <div className="footer-section">
           <h3>Juegos</h3>
-          <a href="#roulette">Ruleta Clásica</a>
           <a href="#poker">Poker</a>
           <a href="#russian">Ruleta Rusa</a>
-          <a href="#retro">Juego Retro</a>
+          <a href="#armies">Armies</a>
+          <a href="#5inline">5InLine</a>
           <a href="/sports">Apuestas Deportivas</a>
         </div>
 

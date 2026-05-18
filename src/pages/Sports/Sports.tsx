@@ -80,13 +80,16 @@ const Sports = () => {
       </div>
 
       <div className="sports-filters">
-        {(['today', 'mybets'] as const).map(tab => (
+        {(['today', 'live', 'mybets'] as const).map(tab => (
           <button
             key={tab}
             className={`filter-btn ${activeTab === tab ? 'active' : ''}`}
             onClick={() => setActiveTab(tab)}
           >
-            {tab === 'today' ? 'Hoy' : 'Mis Apuestas'}
+            {tab === 'today' ? 'Hoy' : tab === 'live' ? 'En Vivo' : 'Mis Apuestas'}
+            {tab === 'live' && liveEvents.length > 0 && (
+              <span className="live-badge">{liveEvents.length}</span>
+            )}
           </button>
         ))}
       </div>
@@ -130,27 +133,37 @@ const Sports = () => {
               ) : error ? (
                 <div className="no-matches"><p>Error al cargar partidos. Verifica que el servicio esté corriendo.</p></div>
               ) : displayEvents.length === 0 ? (
-                <div className="no-matches"><p>No hay partidos disponibles</p></div>
+                <div className={`no-matches ${activeTab === 'live' ? 'live-empty' : ''}`}>
+                  <p>{activeTab === 'live' ? 'No hay partidos en vivo en este momento' : 'No hay partidos disponibles'}</p>
+                </div>
               ) : (
                 <div className="matches-list">
                   {displayEvents.map((event, index) => (
                     <motion.div
                       key={event.id}
-                      className="match-card"
+                      className={`match-card ${event.status === 'LIVE' ? 'live' : ''}`}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}
                     >
                       <div className="match-header">
                         <span className="match-league">{event.competition}</span>
-                        <span className="match-datetime">
-                          {new Date(event.startTime).toLocaleDateString()} - {new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          {event.status === 'LIVE' && event.minute && ` | ${event.minute}'`}
+                        <span className={`match-datetime ${event.status === 'LIVE' ? 'live' : ''}`}>
+                          {event.status === 'LIVE' ? (
+                            <>
+                              EN VIVO
+                              {event.minute && ` | ${event.minute}'`}
+                            </>
+                          ) : (
+                            <>
+                              {new Date(event.startTime).toLocaleDateString()} - {new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </>
+                          )}
                         </span>
                       </div>
                       <div className="match-teams">
                         <div className="team">{event.homeTeam}</div>
-                        <div className="vs">
+                        <div className={`vs ${event.status === 'LIVE' ? 'live-score' : ''}`}>
                           {event.status === 'LIVE' ? `${event.homeScore ?? 0} - ${event.awayScore ?? 0}` : 'VS'}
                         </div>
                         <div className="team">{event.awayTeam}</div>

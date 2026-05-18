@@ -16,15 +16,10 @@ const GameCard = ({ game, onClick }: GameCardProps) => {
     <motion.div
       className={`game-card gradient-${game.gradient} ${!game.available ? 'unavailable' : ''}`}
       onClick={game.available ? onClick : undefined}
-      // Fade-in + slide-up entrance animation
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Badge shown when the game is not yet available */}
-      {!game.available && <div className="game-card-badge">Próximamente</div>}
-
-      {/* Card header: shows the game image if available, otherwise a text icon */}
       <div className="game-card-header">
         {game.image ? (
           <img src={game.image} alt={game.name} className="game-card-image" />
@@ -33,7 +28,6 @@ const GameCard = ({ game, onClick }: GameCardProps) => {
         )}
       </div>
 
-      {/* Card body: game details */}
       <div className="game-card-body">
         <h3 className="game-card-title">{game.name}</h3>
         <p className="game-card-description">{game.description}</p>
