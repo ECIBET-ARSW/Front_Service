@@ -36,8 +36,8 @@ export function useWebSocket({ url, topic, onMessage, enabled = true, privateTop
     const token = localStorage.getItem('token');
 
     const client = new Client({
-      // ✅ SOLO ESTO CAMBIA - Añadir un comentario y el parámetro de opciones
-      webSocketFactory: () => new SockJS(url, null, { withCredentials: false }),
+      // ✅ SOLO ESTO CAMBIA - usar any para evitar error de TypeScript
+      webSocketFactory: () => new (SockJS as any)(url, null, { withCredentials: false }),
       connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
       reconnectDelay: 5000,
       onConnect: () => {
