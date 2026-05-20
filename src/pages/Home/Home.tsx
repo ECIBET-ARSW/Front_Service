@@ -11,7 +11,7 @@ import './Home.css';
 
 const Home = () => {
   // Subset of games shown on the landing page as a preview
-  const featuredGames: Game[] = [
+  const featuredGames: Game[] = [ 
     {
       id: '2',
       name: 'Poker Texas',
