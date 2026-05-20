@@ -36,7 +36,20 @@ export function useWebSocket({ url, topic, onMessage, enabled = true, privateTop
     const token = localStorage.getItem('token');
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(url),
+      // ✅ ÚNICO CAMBIO: Configurar SockJS sin credenciales
+      webSocketFactory: () => {
+        const socket = new SockJS(url);
+        // Deshabilitar credenciales para evitar error 403
+        if (socket.transport && socket.transport.xhr) {
+          try {
+            // @ts-ignore - Acceso interno para deshabilitar credenciales
+            socket.transport.xhr.withCredentials = false;
+          } catch (e) {
+            // Ignorar error si no se puede acceder
+          }
+        }
+        return socket;
+      },
       connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
       reconnectDelay: 5000,
       onConnect: () => {
