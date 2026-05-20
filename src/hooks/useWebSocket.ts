@@ -1,7 +1,4 @@
-// Generic WebSocket STOMP hook.
-// Opens a connection when the component mounts and closes it on unmount.
-// Each game service reuses this hook — only the URL and topic change.
-// Requires: npm install @stomp/stompjs sockjs-client @types/sockjs-client
+// hooks/useWebSocket.ts - ÚNICO ARCHIVO A MODIFICAR
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -35,8 +32,24 @@ export function useWebSocket({ url, topic, onMessage, enabled = true, privateTop
 
     const token = localStorage.getItem('token');
 
+    // ✅ ÚNICO CAMBIO: Configurar SockJS sin credenciales
+    const sockjsFactory = () => {
+      // @ts-ignore - Ignorar errores de tipo de SockJS
+      return new SockJS(url, null, {
+        sessionId: () => Math.random().toString(36).substring(2, 15)
+      });
+    };
+
+    // Configurar XMLHttpRequest para no enviar credenciales
+    const originalSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function() {
+      // @ts-ignore
+      this.withCredentials = false;
+      return originalSend.apply(this, arguments);
+    };
+
     const client = new Client({
-      webSocketFactory: () => new SockJS(url),
+      webSocketFactory: sockjsFactory,
       connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
       reconnectDelay: 5000,
       onConnect: () => {
@@ -62,8 +75,10 @@ export function useWebSocket({ url, topic, onMessage, enabled = true, privateTop
       privateSubRef.current?.unsubscribe();
       client.deactivate();
       setConnected(false);
+      // Restaurar XMLHttpRequest original
+      XMLHttpRequest.prototype.send = originalSend;
     };
-  }, [url, topic, enabled]);
+  }, [url, topic, enabled, privateTopic, onMessage, onPrivateMessage]);
 
   return { connected, sendMessage };
 }
