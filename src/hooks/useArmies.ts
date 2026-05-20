@@ -65,19 +65,34 @@ export function useArmiesLobby(userId: string | undefined) {
 
 // Hook para la sala de juego (waiting room y game)
 export function useArmiesGame(userId: string | undefined, lobbyId: string | undefined) {
+  const [lobby, setLobby] = useState<Lobby | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isHost, setIsHost] = useState(false);
+
+  // Polling del estado del lobby (HTTP)
+  useEffect(() => {
+    if (!lobbyId) return;
+    const fetchLobby = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_ARMIES_URL ?? 'http://localhost:8094'}/api/games/armies/lobbies/${lobbyId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setLobby(data);
+          if (userId) {
+            setIsHost(data.hostId === userId);
+          }
+        }
+      } catch {}
+    };
+    fetchLobby();
+    const interval = setInterval(fetchLobby, 2000);
+    return () => clearInterval(interval);
+  }, [lobbyId, userId]);
 
   const handleMessage = useCallback((body: unknown) => {
     const state = body as GameState;
     setGameState(state);
-    
-    // Determinar si el usuario es el host
-    if (state.players && state.players.length > 0 && userId) {
-      // El host es el primer jugador en la lista
-      setIsHost(state.players[0].userId === userId);
-    }
-  }, [userId]);
+  }, []);
 
   const { connected, sendMessage } = useWebSocket({
     url: `${ARMIES_WS_URL}/ws`,
@@ -102,6 +117,7 @@ export function useArmiesGame(userId: string | undefined, lobbyId: string | unde
   }, [lobbyId, userId]);
 
   return {
+    lobby,
     gameState,
     isHost,
     connected,

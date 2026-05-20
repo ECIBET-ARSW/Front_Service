@@ -1,66 +1,32 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { startGame, registerKeyPress, leaveLobby, getGameState, GameState, Player } from '../../services/armies/armiesApi';
+import { useArmiesGame } from '../../hooks/useArmies';
+import { Player } from '../../services/armies/armiesApi';
 import './ArmiesGame.css';
-
-const ARMIES_WS_URL = import.meta.env.VITE_ARMIES_WS_URL ?? 'ws://localhost:8094';
 
 const ArmiesGame = () => {
   const { lobbyId } = useParams<{ lobbyId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const [gameState, setGameState] = useState<GameState | null>(null);
+  const { lobby, gameState, isHost, connected, startGame: startGameWS, registerKeyPress: registerKeyPressWS, leaveLobby: leaveLobbyWS } = useArmiesGame(user?.id, lobbyId);
+  
   const [canPress, setCanPress] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!lobbyId || !user) return;
+    if (!gameState) return;
 
-    const ws = new WebSocket(`${ARMIES_WS_URL}/ws/armies?lobbyId=${lobbyId}`);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log('WebSocket conectado');
-      fetchInitialState();
-    };
-
-    ws.onmessage = (event) => {
-      const data: GameState = JSON.parse(event.data);
-      setGameState(data);
-
-      if (data.type === 'GAME_STARTED' || data.type === 'ROUND_WON') {
-        startRoundCountdown();
-      }
-
-      if (data.type === 'GAME_ENDED') {
-        setTimeout(() => navigate('/games/armies'), 3000);
-      }
-    };
-
-    ws.onerror = (error) => console.error('WebSocket error:', error);
-    ws.onclose = () => console.log('WebSocket desconectado');
-
-    return () => {
-      ws.close();
-      if (lobbyId && user) {
-        leaveLobby(lobbyId, user.id).catch(console.error);
-      }
-    };
-  }, [lobbyId, user]);
-
-  const fetchInitialState = async () => {
-    if (!lobbyId) return;
-    try {
-      const state = await getGameState(lobbyId);
-      setGameState(state);
-    } catch (error) {
-      console.error('Error fetching game state:', error);
+    if (gameState.type === 'GAME_STARTED' || gameState.type === 'ROUND_WON') {
+      startRoundCountdown();
     }
-  };
+
+    if (gameState.type === 'GAME_ENDED') {
+      setTimeout(() => navigate('/games/armies'), 3000);
+    }
+  }, [gameState, navigate]);
 
   const startRoundCountdown = () => {
     setCanPress(false);
@@ -78,43 +44,28 @@ const ArmiesGame = () => {
     }, 1000);
   };
 
-  const handleKeyPress = useCallback(async (e: KeyboardEvent) => {
-    if (e.code !== 'Space' || !canPress || !lobbyId || !user) return;
+  const handleKeyPress = useCallback((e: KeyboardEvent) => {
+    if (e.code !== 'Space' || !canPress) return;
     
     setCanPress(false);
-    try {
-      await registerKeyPress(lobbyId, user.id);
-    } catch (error) {
-      console.error('Error registering key press:', error);
-    }
-  }, [canPress, lobbyId, user]);
+    registerKeyPressWS();
+  }, [canPress, registerKeyPressWS]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [handleKeyPress]);
 
-  const handleStart = async () => {
-    if (!lobbyId || !user || !gameState) return;
-    try {
-      await startGame(lobbyId, user.id);
-    } catch (error) {
-      console.error('Error starting game:', error);
-      alert('Error al iniciar el juego');
-    }
+  const handleStart = () => {
+    startGameWS();
   };
 
   const handleLeave = async () => {
-    if (!lobbyId || !user) return;
-    try {
-      await leaveLobby(lobbyId, user.id);
-      navigate('/games/armies');
-    } catch (error) {
-      console.error('Error leaving lobby:', error);
-    }
+    await leaveLobbyWS();
+    navigate('/games/armies');
   };
 
-  if (!gameState) {
+  if (!lobby && !gameState) {
     return (
       <div className="armies-game-loading">
         <div className="spinner"></div>
@@ -123,15 +74,27 @@ const ArmiesGame = () => {
     );
   }
 
-  const myPlayer = gameState.players.find((p: Player) => p.userId === user?.id);
-  const opponent = gameState.players.find((p: Player) => p.userId !== user?.id);
-  const isHost = gameState.players[0]?.userId === user?.id;
+  const players = gameState?.players ?? lobby?.playerNames.map((name, idx) => ({
+    userId: idx === 0 ? lobby.hostId : `player-${idx}`,
+    username: name,
+    roundsWon: 0,
+    ready: false,
+    lastKeyPressTime: null
+  })) ?? [];
+
+  const myPlayer = players.find((p: Player) => p.userId === user?.id);
+  const opponent = players.find((p: Player) => p.userId !== user?.id);
+
+  const status = gameState?.status ?? lobby?.status ?? 'WAITING';
+  const currentRound = gameState?.currentRound ?? 0;
+  const pot = gameState?.pot ?? lobby?.pot ?? 0;
+  const winnerId = gameState?.winnerId;
 
   const getBackgroundImage = () => {
-    if (gameState.status === 'FINISHED') {
-      return gameState.winnerId === user?.id ? 'jugador1_gana.png' : 'jugador2_gana.png';
+    if (status === 'FINISHED') {
+      return winnerId === user?.id ? 'jugador1_gana.png' : 'jugador2_gana.png';
     }
-    if (gameState.status !== 'IN_PROGRESS') return 'inicio.png';
+    if (status !== 'IN_PROGRESS') return 'inicio.png';
 
     const myWins = myPlayer?.roundsWon ?? 0;
     const oppWins = opponent?.roundsWon ?? 0;
@@ -161,11 +124,11 @@ const ArmiesGame = () => {
 
           <div className="armies-center-info">
             <div className="pot-display">
-              💰 ${gameState.pot.toLocaleString()}
+              💰 ${pot.toLocaleString()}
             </div>
-            {gameState.status === 'IN_PROGRESS' && (
+            {status === 'IN_PROGRESS' && (
               <div className="round-display">
-                Round {gameState.currentRound}
+                Round {currentRound}
               </div>
             )}
           </div>
@@ -189,10 +152,10 @@ const ArmiesGame = () => {
           )}
         </AnimatePresence>
 
-        {gameState.status === 'WAITING' && (
+        {status === 'WAITING' && (
           <div className="armies-waiting">
             <h2>Sala de Espera</h2>
-            {gameState.players.length < 2 ? (
+            {players.length < 2 ? (
               <p>Esperando al segundo jugador...</p>
             ) : (
               <>
@@ -208,7 +171,7 @@ const ArmiesGame = () => {
           </div>
         )}
 
-        {gameState.status === 'IN_PROGRESS' && canPress && (
+        {status === 'IN_PROGRESS' && canPress && (
           <motion.div 
             className="press-space-indicator"
             animate={{ scale: [1, 1.1, 1] }}
@@ -218,17 +181,17 @@ const ArmiesGame = () => {
           </motion.div>
         )}
 
-        {gameState.status === 'FINISHED' && (
+        {status === 'FINISHED' && (
           <motion.div 
             className="game-result"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
           >
-            <h1>{gameState.winnerId === user?.id ? '¡VICTORIA!' : 'DERROTA'}</h1>
+            <h1>{winnerId === user?.id ? '¡VICTORIA!' : 'DERROTA'}</h1>
             <p className="winner-name">
-              {gameState.players.find((p: Player) => p.userId === gameState.winnerId)?.username} gana
+              {players.find((p: Player) => p.userId === winnerId)?.username} gana
             </p>
-            <p className="prize-amount">${gameState.pot.toLocaleString()}</p>
+            <p className="prize-amount">${pot.toLocaleString()}</p>
             <p className="redirect-message">Redirigiendo al lobby...</p>
           </motion.div>
         )}
