@@ -1,4 +1,4 @@
-// hooks/useWebSocket.ts - ÚNICO ARCHIVO A MODIFICAR
+// hooks/useWebSocket.ts
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -11,6 +11,33 @@ interface UseWebSocketOptions {
   privateTopic?: string;
   onPrivateMessage?: (body: unknown) => void;
 }
+
+// ✅ Crear una fábrica de SockJS que no use credenciales
+const createSockJS = (url: string) => {
+  // Crear el socket SockJS
+  const socket = new SockJS(url);
+  
+  // Interceptar el envío de XMLHttpRequest para deshabilitar credenciales
+  const originalXHROpen = XMLHttpRequest.prototype.open;
+  const originalXHRSend = XMLHttpRequest.prototype.send;
+  
+  // @ts-ignore - Override temporal
+  XMLHttpRequest.prototype.open = function() {
+    // @ts-ignore
+    const result = originalXHROpen.apply(this, arguments);
+    // Deshabilitar credenciales
+    this.withCredentials = false;
+    return result;
+  };
+  
+  // Restaurar después de crear el socket
+  setTimeout(() => {
+    XMLHttpRequest.prototype.open = originalXHROpen;
+    XMLHttpRequest.prototype.send = originalXHRSend;
+  }, 0);
+  
+  return socket;
+};
 
 export function useWebSocket({ url, topic, onMessage, enabled = true, privateTopic, onPrivateMessage }: UseWebSocketOptions) {
   const clientRef = useRef<Client | null>(null);
@@ -32,24 +59,25 @@ export function useWebSocket({ url, topic, onMessage, enabled = true, privateTop
 
     const token = localStorage.getItem('token');
 
-    // ✅ ÚNICO CAMBIO: Configurar SockJS sin credenciales
-    const sockjsFactory = () => {
-      // @ts-ignore - Ignorar errores de tipo de SockJS
-      return new SockJS(url, null, {
-        sessionId: () => Math.random().toString(36).substring(2, 15)
+    // ✅ Crear SockJS con configuración segura
+    const webSocketFactory = () => {
+      // Crear socket con opciones
+      const socket = new SockJS(url, null, {
+        // @ts-ignore - Opciones no tipadas de SockJS
+        transports: ['websocket', 'xhr-streaming', 'xhr-polling']
       });
-    };
-
-    // Configurar XMLHttpRequest para no enviar credenciales
-    const originalSend = XMLHttpRequest.prototype.send;
-    XMLHttpRequest.prototype.send = function() {
-      // @ts-ignore
-      this.withCredentials = false;
-      return originalSend.apply(this, arguments);
+      
+      // Deshabilitar credenciales en el socket
+      if (socket.transport && socket.transport.xhr) {
+        // @ts-ignore
+        socket.transport.xhr.withCredentials = false;
+      }
+      
+      return socket;
     };
 
     const client = new Client({
-      webSocketFactory: sockjsFactory,
+      webSocketFactory,
       connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
       reconnectDelay: 5000,
       onConnect: () => {
@@ -73,10 +101,10 @@ export function useWebSocket({ url, topic, onMessage, enabled = true, privateTop
     return () => {
       subscriptionRef.current?.unsubscribe();
       privateSubRef.current?.unsubscribe();
-      client.deactivate();
+      if (clientRef.current) {
+        clientRef.current.deactivate();
+      }
       setConnected(false);
-      // Restaurar XMLHttpRequest original
-      XMLHttpRequest.prototype.send = originalSend;
     };
   }, [url, topic, enabled, privateTopic, onMessage, onPrivateMessage]);
 
