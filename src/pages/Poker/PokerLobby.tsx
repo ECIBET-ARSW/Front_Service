@@ -178,7 +178,7 @@ const PokerLobby = () => {
                   <div className="room-info">
                     <span className="room-name">#{room.id.slice(-6).toUpperCase()}</span>
                     <span className="room-players">{players.length}/6 jugadores</span>
-                    <span className="room-buyin">Mínimo: ${Number(buyIn).toLocaleString()} COP</span>
+                    <span className="room-buyin">Mínimo: ${buyInNum.toLocaleString()} COP</span>
                     <div className="room-player-list">
                       {players.map((p: any, idx: number) => (
                         <span key={idx} className="room-player-chip">{p.name || p.id}</span>
@@ -215,8 +215,17 @@ const PokerLobby = () => {
               <div className="modal-field">
                 <label>Valor mínimo de entrada (COP)</label>
                 <div className="buyin-options">
-                  {[{ label: 'MIN', val: 2000 }, { label: '100K', val: 100000 }, { label: '900K', val: 900000 }, { label: 'MAX', val: 2000000 }].map(({ label, val }) => (
-                    <button key={val} className={`buyin-btn ${buyIn === val ? 'selected' : ''}`} onClick={() => setBuyIn(String(val))}>
+                  {[
+                    { label: 'MIN', val: '2000' },
+                    { label: '100K', val: '100000' },
+                    { label: '900K', val: '900000' },
+                    { label: 'MAX', val: '2000000' }
+                  ].map(({ label, val }) => (
+                    <button 
+                      key={val} 
+                      className={`buyin-btn ${buyIn === val ? 'selected' : ''}`} 
+                      onClick={() => setBuyIn(val)}
+                    >
                       {label}
                     </button>
                   ))}
