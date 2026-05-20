@@ -152,7 +152,7 @@ export default function PokerTable({ game, currentPlayer, privateHand, onContinu
                   <span style={s.playerCredits}>{(p.credit ?? p.chips ?? 0).toLocaleString()}</span>
                   {p.currentBet > 0 && <span style={s.playerBet}>↑ {p.currentBet.toLocaleString()}</span>}
                   {p.folded && <span style={s.badge}>RETIRO</span>}
-                  {p.allIn  && <span style={{ ...s.badge, color: '#e67e22', borderColor: '#5a3000' }}>ALL-IN</span>}
+
                 </div>
               )
             })}
